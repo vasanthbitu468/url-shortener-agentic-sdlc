@@ -1,6 +1,28 @@
+# Python
 .venv/
 __pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Test / coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.ruff_cache/
+
+# Local data and secrets
 .env
 *.db
+
+# Orchestrator runs (keep committed samples)
 runs/*
 !runs/samples/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

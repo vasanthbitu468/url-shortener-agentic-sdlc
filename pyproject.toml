@@ -1,0 +1,53 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "url-shortener-agentic-sdlc"
+version = "0.1.0"
+description = "URL shortener service built and evolved by a governed agentic SDLC orchestrator"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+# Pinned so the generated OpenAPI contract (service/openapi.json) is reproducible.
+dependencies = [
+    "fastapi==0.162.0",
+    "starlette==1.7.0",
+    "uvicorn[standard]==0.54.0",
+    "sqlalchemy==2.1.6",
+    "pydantic==2.13.5",
+    "pydantic-settings==2.16.2",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.1.1",
+    "pytest-cov==7.1.0",
+    "httpx==0.28.1",
+    "ruff==0.17.3",
+]
+
+[tool.setuptools.packages.find]
+include = ["service*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["service"]
+
+[tool.coverage.report]
+fail_under = 85
+show_missing = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S"]
+ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101"]
