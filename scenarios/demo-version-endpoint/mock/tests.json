@@ -1,0 +1,16 @@
+{
+  "edits": [
+    {
+      "path": "tests/integration/test_version.py",
+      "action": "create",
+      "content": "def test_version_endpoint_returns_app_version(client, app):\n    r = client.get(\"/api/v1/version\")\n    assert r.status_code == 200\n    assert r.json() == {\"version\": app.version}\n\n\ndef test_version_path_is_not_treated_as_short_code(client):\n    assert client.get(\"/api/v1/version\").headers[\"content-type\"].startswith(\"application/json\")\n"
+    }
+  ],
+  "summary": "Integration tests for the version endpoint",
+  "decisions": [
+    {
+      "summary": "Assert against app.version, not a literal",
+      "rationale": "Test stays valid across releases"
+    }
+  ]
+}

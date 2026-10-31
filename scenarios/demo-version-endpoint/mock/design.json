@@ -1,0 +1,37 @@
+{
+  "design": {
+    "summary": "New APIRouter in service/api/version.py exposing GET /api/v1/version, returning VersionResponse{version}; registered in create_app before the redirect router.",
+    "components": [
+      {
+        "name": "service.api.version.router",
+        "responsibility": "Serve the version endpoint"
+      },
+      {
+        "name": "VersionResponse",
+        "responsibility": "Typed response model for the contract"
+      }
+    ],
+    "endpoints": [
+      {
+        "method": "GET",
+        "path": "/api/v1/version",
+        "response": "200 {\"version\": str}"
+      }
+    ],
+    "api_changes": true,
+    "data_model_changes": false,
+    "adr": {
+      "title": "ADR-001: Version endpoint reads app.version",
+      "context": "Operators need to confirm the deployed build.",
+      "decision": "Read the version from the FastAPI app object instead of a constant.",
+      "consequences": "One place to bump on release; no extra config."
+    },
+    "test_strategy": "Integration test via the TestClient fixture; contract test covers the OpenAPI change."
+  },
+  "decisions": [
+    {
+      "summary": "Separate router module",
+      "rationale": "Keeps routes.py focused on link operations"
+    }
+  ]
+}

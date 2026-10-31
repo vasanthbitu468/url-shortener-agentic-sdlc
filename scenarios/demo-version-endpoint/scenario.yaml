@@ -1,0 +1,13 @@
+# Demo scenario used by tests and CI. Small brownfield change that exercises every control path:
+#  - design changes the API contract  -> human approval checkpoint
+#  - docs agent fails once (injected) -> retry with backoff
+#  - first implementation leaks a hard-coded key (scripted in mock/implementation.1.json)
+#      -> policy review blocks -> rollback -> rework implementation with feedback -> passes
+#  - tests and docs run in parallel and join at review
+#  - release always needs human approval
+name: demo-version-endpoint
+type: brownfield
+requirement: |
+  Ops keep asking which build is deployed. Add an endpoint that tells us the service version.
+faults:
+  docs: 1
