@@ -1,10 +1,12 @@
 # URL Shortener — Agentic SDLC
 
-A URL shortener service, plus (in later phases) an agentic orchestration layer that builds and
-evolves the service through a governed SDLC pipeline with gates, human approvals, retries,
-rollback and audit.
+A URL shortener service, plus an agentic orchestration layer (`orchestrator/`) that builds and
+evolves the service through a governed SDLC pipeline: dependency graph, entry/exit gates,
+parallel stages, human approvals, bounded retries, fallback, rollback, safe-stop, re-planning,
+policy guardrails and a hash-chained audit log.
 
-**Status:** Phase 1 — core service complete (create, redirect, analytics, reliability features).
+**Status:** Phase 1 (service) and Phase 2 (orchestrator) complete. Next: the greenfield,
+brownfield and ambiguous scenarios, then the architecture and engineering-summary docs.
 
 ## Quick start (Windows, Command Prompt)
 
@@ -21,6 +23,48 @@ macOS / Linux: same, but `python3 -m venv .venv` and `source .venv/bin/activate`
 Open http://localhost:8000/docs for interactive API docs.
 
 With Docker: `docker compose up --build`, then the same URL.
+
+## Agentic orchestrator
+
+```
+requirements -> planning -> impact_analysis* -> design -> implementation -+-> tests -+-> review -> release
+                                                                          +-> docs  -+
+```
+
+Agents work in a sandbox copy of the repo under `runs/<run-id>/`; the deliverable is a patch a
+human reviews and applies. Approval checkpoints: requirements (when ambiguous), design (when the
+API or schema changes) and release (always).
+
+| Command | What it does |
+| --- | --- |
+| `sdlc graph` | show the pipeline |
+| `sdlc run scenarios/demo-version-endpoint` | runs until the design approval |
+| `sdlc approve <run-id> design -m "looks good"` | continue; pauses at release |
+| `sdlc approve <run-id> release -m "ship it"` | completes: changes.patch, summary.md |
+| `sdlc status <run-id>` | stage table |
+| `sdlc trace <run-id>` | decision lineage |
+| `sdlc verify <run-id>` | check the audit log hash chain |
+| `sdlc metrics` | reliability metrics across runs |
+| `sdlc reject <run-id> design -m "what to change"` | send a stage back with feedback |
+| `sdlc edit <run-id> spec my_spec.json` | change an artifact -> downstream re-plans |
+| `sdlc stop <run-id>` | safe-stop (state saved) |
+| `sdlc resume <run-id>` | continue a stopped or paused run |
+
+The demo scenario is scripted (mock LLM) to show every control path: the docs agent fails once
+(retry with backoff), tests and docs run in parallel, the first implementation leaks a
+hard-coded key so policy review blocks it (rollback and rework with feedback), and the run
+pauses twice for human approval. Use `--llm live` with `ANTHROPIC_API_KEY` set (and
+`pip install -e ".[live]"`) to drive the same pipeline with Claude.
+
+| Control | Where |
+| --- | --- |
+| Dependency graph, cycle checks, parallel levels | `orchestrator/graph.py`, `pipeline.py` |
+| Scheduling, retries, fallback, rework, rollback, safe-stop, re-plan | `orchestrator/engine.py` |
+| Entry/exit gates and approval rules | `orchestrator/gates.py` |
+| Security, compliance, change-control policies | `orchestrator/policies.py` |
+| Sandbox, scoped edits, checkpoints, patch | `orchestrator/workspace.py` |
+| Hash-chained audit log | `orchestrator/events.py` |
+| Metrics: success rate, retry/rollback frequency, MTTR, latency | `orchestrator/telemetry.py` |
 
 ## API
 
@@ -72,6 +116,9 @@ service/
 tests/
   unit/         validators, codegen, rate limiter, cache
   integration/  every endpoint, idempotency, expiry, caching, rate limit, contract
+orchestrator/   engine, graph, gates, policies, workspace, agents/, cli
+tests_orchestrator/  engine control paths, policies, gates, CLI, audit tampering
+scenarios/      scenario.yaml + scripted mock LLM responses
 scripts/export_openapi.py
 ```
 
@@ -81,8 +128,11 @@ All settings are environment variables prefixed `APP_` (or a `.env` file). See `
 
 ## Testing
 
-`pytest --cov` runs unit and integration tests against an in-memory SQLite DB.
-CI enforces lint (`ruff`), an 85% coverage gate, and a Docker build + smoke test.
+`pytest --cov` runs the service tests (in-memory SQLite) and the orchestrator tests (full runs
+through every control path: retry, fallback, rework, rollback, approvals, rejection, safe-stop,
+re-plan, autonomy violations, audit tampering). Takes about a minute.
+CI enforces lint (`ruff`), an 85% coverage gate, a Docker build + smoke test, and an end-to-end
+orchestrator run whose patch must apply cleanly.
 
 ## Known limitations (Phase 1)
 
@@ -92,10 +142,13 @@ CI enforces lint (`ruff`), an 85% coverage gate, and a Docker build + smoke test
 - Tables are created at startup; schema changes from v2 onward go through migrations.
 - No authentication: anyone can delete any link. Ownership/API keys are a planned enhancement.
 
+Orchestrator limitations: an agent that times out keeps running in its thread until it ends
+(its result is discarded); the run state is a JSON file, so two processes must not drive the
+same run at once; mock mode replays scripted responses and does not judge prompt quality.
+
 ## Roadmap
 
 1. ~~Core service~~
-2. Agentic orchestration engine (DAG, gates, approvals, retries, rollback, re-plan)
-3. Governance: policies, audit log, reliability metrics
-4. Scenarios: greenfield, brownfield, ambiguous
-5. Docs and release
+2. ~~Agentic orchestration engine with governance, audit and metrics~~
+3. Scenarios: greenfield, brownfield, ambiguous
+4. Docs (architecture, scenarios, testing, engineering summary) and release

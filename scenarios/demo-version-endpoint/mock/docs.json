@@ -1,0 +1,16 @@
+{
+  "edits": [
+    {
+      "path": "docs/changes/version-endpoint.md",
+      "action": "create",
+      "content": "# Version endpoint\n\n`GET /api/v1/version` returns the version of the running service.\n\n```bash\ncurl http://localhost:8000/api/v1/version\n# {\"version\": \"1.0.0\"}\n```\n\n## Decision (ADR-001)\n\nThe version is read from the FastAPI application object, so a release only bumps it in one place.\nNo authentication is required: the version is not sensitive.\n"
+    }
+  ],
+  "summary": "Documented the endpoint",
+  "decisions": [
+    {
+      "summary": "Docs live under docs/changes/",
+      "rationale": "One file per change keeps history readable"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "url-shortener-agentic-sdlc"
-version = "0.1.0"
+version = "0.2.0"
 description = "URL shortener service built and evolved by a governed agentic SDLC orchestrator"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -17,6 +17,7 @@ dependencies = [
     "sqlalchemy==2.1.6",
     "pydantic==2.13.5",
     "pydantic-settings==2.16.2",
+    "pyyaml==6.0.3",
 ]
 
 [project.optional-dependencies]
@@ -26,16 +27,23 @@ dev = [
     "httpx==0.28.1",
     "ruff==0.17.3",
 ]
+live = [
+    "anthropic>=0.40",
+]
+
+[project.scripts]
+sdlc = "orchestrator.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["service*"]
+include = ["service*", "orchestrator*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+# tests/ = service tests (also run inside agent workspaces); tests_orchestrator/ = engine tests
+testpaths = ["tests", "tests_orchestrator"]
 addopts = "-q"
 
 [tool.coverage.run]
-source = ["service"]
+source = ["service", "orchestrator"]
 
 [tool.coverage.report]
 fail_under = 85
@@ -51,3 +59,4 @@ ignore = ["B008"]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
+"tests_orchestrator/**" = ["S101", "S603", "S607"]

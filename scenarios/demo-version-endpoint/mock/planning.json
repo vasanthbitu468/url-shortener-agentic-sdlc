@@ -1,0 +1,76 @@
+{
+  "plan": {
+    "tasks": [
+      {
+        "id": "T1",
+        "title": "Analyse impact on routing",
+        "stage": "impact_analysis",
+        "depends_on": [],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "T2",
+        "title": "Design endpoint and response model",
+        "stage": "design",
+        "depends_on": [
+          "T1"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "T3",
+        "title": "Implement router and register it",
+        "stage": "implementation",
+        "depends_on": [
+          "T2"
+        ],
+        "estimate_hours": 1
+      },
+      {
+        "id": "T4",
+        "title": "Integration test for /api/v1/version",
+        "stage": "tests",
+        "depends_on": [
+          "T3"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "T5",
+        "title": "Document the endpoint",
+        "stage": "docs",
+        "depends_on": [
+          "T3"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "T6",
+        "title": "Policy review and release",
+        "stage": "review",
+        "depends_on": [
+          "T4",
+          "T5"
+        ],
+        "estimate_hours": 0.25
+      }
+    ],
+    "risks": [
+      {
+        "risk": "New path could be captured by the catch-all /{code} redirect route",
+        "mitigation": "Register the router before the redirect router; test it explicitly"
+      },
+      {
+        "risk": "API contract drift",
+        "mitigation": "Regenerate service/openapi.json; contract test enforces it"
+      }
+    ],
+    "skip_stages": []
+  },
+  "decisions": [
+    {
+      "summary": "Keep impact analysis",
+      "rationale": "Brownfield change to routing order in an existing app"
+    }
+  ]
+}

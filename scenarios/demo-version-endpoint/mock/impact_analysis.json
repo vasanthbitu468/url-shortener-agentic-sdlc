@@ -1,0 +1,43 @@
+{
+  "impact": {
+    "modules": [
+      {
+        "path": "service/api/version.py",
+        "change": "new router with GET /api/v1/version",
+        "new": true
+      },
+      {
+        "path": "service/main.py",
+        "change": "register the new router before the redirect catch-all",
+        "new": false
+      },
+      {
+        "path": "service/openapi.json",
+        "change": "contract gains one path",
+        "new": false
+      }
+    ],
+    "apis": [
+      {
+        "endpoint": "GET /api/v1/version",
+        "change": "added"
+      }
+    ],
+    "data_flows": [
+      "Request -> FastAPI router -> app.version (no DB, no cache)"
+    ],
+    "tests_affected": [
+      "tests/integration/test_contract.py"
+    ],
+    "risk_level": "low",
+    "risks": [
+      "Route ordering relative to /{code}"
+    ]
+  },
+  "decisions": [
+    {
+      "summary": "Change is additive; no schema impact",
+      "rationale": "No model or migration touched"
+    }
+  ]
+}
