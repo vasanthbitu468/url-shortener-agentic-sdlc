@@ -1,0 +1,100 @@
+{
+  "plan": {
+    "tasks": [
+      {
+        "id": "B1",
+        "title": "Impact analysis: model, migration path, cache, idempotency",
+        "stage": "impact_analysis",
+        "depends_on": [],
+        "estimate_hours": 1
+      },
+      {
+        "id": "B2",
+        "title": "Design schema change, migration and API field",
+        "stage": "design",
+        "depends_on": [
+          "B1"
+        ],
+        "estimate_hours": 1
+      },
+      {
+        "id": "B3",
+        "title": "Add max_clicks column and additive migration",
+        "stage": "implementation",
+        "depends_on": [
+          "B2"
+        ],
+        "estimate_hours": 1.5
+      },
+      {
+        "id": "B4",
+        "title": "Enforce limit in LinkService; bypass cache for limited links",
+        "stage": "implementation",
+        "depends_on": [
+          "B3"
+        ],
+        "estimate_hours": 1
+      },
+      {
+        "id": "B5",
+        "title": "Fix idempotent replay of deleted links (410)",
+        "stage": "implementation",
+        "depends_on": [
+          "B2"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "B6",
+        "title": "Regression + migration tests",
+        "stage": "tests",
+        "depends_on": [
+          "B4",
+          "B5"
+        ],
+        "estimate_hours": 1.5
+      },
+      {
+        "id": "B7",
+        "title": "Docs and upgrade notes",
+        "stage": "docs",
+        "depends_on": [
+          "B4",
+          "B5"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "B8",
+        "title": "Policy review and release",
+        "stage": "review",
+        "depends_on": [
+          "B6",
+          "B7"
+        ],
+        "estimate_hours": 0.5
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Existing SQLite/Postgres databases lack the new column and would crash",
+        "mitigation": "Additive, idempotent startup migration for nullable columns; NOT NULL changes refused and left to a reviewed migration"
+      },
+      {
+        "risk": "Redirect cache would bypass the click limit",
+        "mitigation": "Never cache click-limited links; test asserts it"
+      },
+      {
+        "risk": "Limit can be exceeded by concurrent requests",
+        "mitigation": "Documented as approximate; strict mode out of scope"
+      }
+    ],
+    "skip_stages": []
+  },
+  "decisions": [
+    {
+      "summary": "Keep impact analysis",
+      "rationale": "Change touches the schema, cache and idempotency paths"
+    }
+  ]
+}

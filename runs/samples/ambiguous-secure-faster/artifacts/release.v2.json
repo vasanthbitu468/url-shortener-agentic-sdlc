@@ -1,0 +1,15 @@
+{
+  "patch_file": "changes.patch",
+  "patch_lines": 240,
+  "files": [
+    "docs/changes/denylist.md",
+    "service/api/routes.py",
+    "service/config.py",
+    "service/core/links.py",
+    "service/core/validation.py",
+    "tests/integration/test_denylist_create.py",
+    "tests/integration/test_denylist_redirect.py",
+    "tests/unit/test_denylist.py"
+  ],
+  "needs_approval": []
+}

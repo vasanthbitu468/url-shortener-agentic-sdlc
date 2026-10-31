@@ -1,0 +1,10 @@
+{
+  "changed_files": [
+    "service/api/version.py",
+    "service/main.py",
+    "service/openapi.json"
+  ],
+  "compile_errors": [],
+  "openapi_error": "",
+  "summary": "Added version router and registered it"
+}

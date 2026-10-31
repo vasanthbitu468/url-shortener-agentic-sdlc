@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "lint_errors": "",
+  "changed_files": {
+    "docs/changes/version-endpoint.md": "added",
+    "service/api/version.py": "added",
+    "service/main.py": "modified",
+    "service/openapi.json": "modified",
+    "tests/integration/test_version.py": "added"
+  },
+  "diff_lines": 74
+}

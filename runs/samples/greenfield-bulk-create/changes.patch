@@ -1,0 +1,327 @@
+diff --git a/docs/changes/bulk-create.md b/docs/changes/bulk-create.md
+new file mode 100644
+--- /dev/null
++++ b/docs/changes/bulk-create.md
+@@ -0,0 +1,27 @@
++# Bulk link creation
++
++`POST /api/v1/urls/bulk` shortens up to 100 URLs in one request.
++
++```bash
++curl -X POST http://localhost:8000/api/v1/urls/bulk -H "Content-Type: application/json" \
++  -d '{"items": [{"url": "https://example.com/a"}, {"url": "https://example.com/b", "custom_alias": "spring-b"}]}'
++```
++
++Response (200):
++
++```json
++{"created": 2, "failed": 0, "results": [
++  {"index": 0, "ok": true, "link": {"code": "Ab3dE9x", "short_url": "...", "...": "..."}, "error": null},
++  {"index": 1, "ok": true, "link": {"code": "spring-b", "...": "..."}, "error": null}]}
++```
++
++## Behaviour
++
++- Items are processed independently: an invalid URL or a taken alias fails only that item.
++- Every item consumes one rate-limit token; items over the limit fail with `rate limit exceeded`.
++- 422 for an empty batch, more than 100 items, or unknown fields.
++
++## Decision (ADR-002)
++
++Partial success with HTTP 200 and per-item results. All-or-nothing would force clients to
++pre-validate whole campaign files; 207 Multi-Status was rejected as WebDAV-specific.
+diff --git a/service/api/bulk.py b/service/api/bulk.py
+new file mode 100644
+--- /dev/null
++++ b/service/api/bulk.py
+@@ -0,0 +1,71 @@
++"""Bulk link creation: shorten up to 100 URLs in one request.
++
++Each item is validated and created independently, so one bad URL does not fail the batch.
++Every item counts against the caller's rate limit; items over the limit are reported as
++failed rather than silently dropped.
++"""
++
++from fastapi import APIRouter, Depends, Request
++from pydantic import BaseModel, ConfigDict, Field
++
++from service.api.routes import get_link_service, to_response
++from service.api.schemas import CreateUrlRequest, ErrorResponse, UrlResponse
++from service.core.links import AliasTakenError, CodeSpaceExhaustedError, LinkService
++from service.core.validation import ValidationError
++
++MAX_BATCH = 100
++
++router = APIRouter(prefix="/api/v1", tags=["urls"])
++
++
++class BulkCreateRequest(BaseModel):
++    model_config = ConfigDict(extra="forbid")
++
++    items: list[CreateUrlRequest] = Field(..., min_length=1, max_length=MAX_BATCH)
++
++
++class BulkItemResult(BaseModel):
++    index: int
++    ok: bool
++    link: UrlResponse | None = None
++    error: str | None = None
++
++
++class BulkCreateResponse(BaseModel):
++    created: int
++    failed: int
++    results: list[BulkItemResult]
++
++
++@router.post(
++    "/urls/bulk",
++    response_model=BulkCreateResponse,
++    responses={422: {"model": ErrorResponse, "description": "Invalid batch"}},
++)
++def bulk_create(
++    body: BulkCreateRequest,
++    request: Request,
++    service: LinkService = Depends(get_link_service),
++) -> BulkCreateResponse:
++    limiter = request.app.state.rate_limiter
++    client = request.client.host if request.client else "unknown"
++    base_url = request.app.state.settings.base_url
++
++    results: list[BulkItemResult] = []
++    for index, item in enumerate(body.items):
++        if not limiter.allow(client):
++            results.append(BulkItemResult(index=index, ok=False, error="rate limit exceeded"))
++            continue
++        try:
++            created = service.create(
++                item.url, custom_alias=item.custom_alias, expires_at=item.expires_at
++            )
++        except (ValidationError, AliasTakenError, CodeSpaceExhaustedError) as exc:
++            results.append(BulkItemResult(index=index, ok=False, error=str(exc)))
++        else:
++            results.append(
++                BulkItemResult(index=index, ok=True, link=to_response(created.url, base_url))
++            )
++
++    ok = sum(r.ok for r in results)
++    return BulkCreateResponse(created=ok, failed=len(results) - ok, results=results)
+diff --git a/service/main.py b/service/main.py
+--- a/service/main.py
++++ b/service/main.py
+@@ -10,6 +10,7 @@
+ 
+ from fastapi import FastAPI, Request
+ 
++from service.api.bulk import router as bulk_router
+ from service.api.routes import api, ops, redirect
+ from service.config import Settings, get_settings
+ from service.core.cache import TTLCache
+@@ -78,6 +79,7 @@
+ 
+     app.include_router(ops)
+     app.include_router(api)
++    app.include_router(bulk_router)
+     app.include_router(redirect)  # last: catch-all /{code}
+     return app
+ 
+diff --git a/service/openapi.json b/service/openapi.json
+--- a/service/openapi.json
++++ b/service/openapi.json
+@@ -1,6 +1,90 @@
+ {
+   "components": {
+     "schemas": {
++      "BulkCreateRequest": {
++        "additionalProperties": false,
++        "properties": {
++          "items": {
++            "items": {
++              "$ref": "#/components/schemas/CreateUrlRequest"
++            },
++            "maxItems": 100,
++            "minItems": 1,
++            "title": "Items",
++            "type": "array"
++          }
++        },
++        "required": [
++          "items"
++        ],
++        "title": "BulkCreateRequest",
++        "type": "object"
++      },
++      "BulkCreateResponse": {
++        "properties": {
++          "created": {
++            "title": "Created",
++            "type": "integer"
++          },
++          "failed": {
++            "title": "Failed",
++            "type": "integer"
++          },
++          "results": {
++            "items": {
++              "$ref": "#/components/schemas/BulkItemResult"
++            },
++            "title": "Results",
++            "type": "array"
++          }
++        },
++        "required": [
++          "created",
++          "failed",
++          "results"
++        ],
++        "title": "BulkCreateResponse",
++        "type": "object"
++      },
++      "BulkItemResult": {
++        "properties": {
++          "error": {
++            "anyOf": [
++              {
++                "type": "string"
++              },
++              {
++                "type": "null"
++              }
++            ],
++            "title": "Error"
++          },
++          "index": {
++            "title": "Index",
++            "type": "integer"
++          },
++          "link": {
++            "anyOf": [
++              {
++                "$ref": "#/components/schemas/UrlResponse"
++              },
++              {
++                "type": "null"
++              }
++            ]
++          },
++          "ok": {
++            "title": "Ok",
++            "type": "boolean"
++          }
++        },
++        "required": [
++          "index",
++          "ok"
++        ],
++        "title": "BulkItemResult",
++        "type": "object"
++      },
+       "CreateUrlRequest": {
+         "additionalProperties": false,
+         "properties": {
+@@ -329,6 +413,47 @@
+         ]
+       }
+     },
++    "/api/v1/urls/bulk": {
++      "post": {
++        "operationId": "bulk_create_api_v1_urls_bulk_post",
++        "requestBody": {
++          "content": {
++            "application/json": {
++              "schema": {
++                "$ref": "#/components/schemas/BulkCreateRequest"
++              }
++            }
++          },
++          "required": true
++        },
++        "responses": {
++          "200": {
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/BulkCreateResponse"
++                }
++              }
++            },
++            "description": "Successful Response"
++          },
++          "422": {
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ErrorResponse"
++                }
++              }
++            },
++            "description": "Invalid batch"
++          }
++        },
++        "summary": "Bulk Create",
++        "tags": [
++          "urls"
++        ]
++      }
++    },
+     "/api/v1/urls/{code}": {
+       "delete": {
+         "operationId": "delete_url_api_v1_urls__code__delete",
+diff --git a/tests/integration/test_bulk.py b/tests/integration/test_bulk.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/test_bulk.py
+@@ -0,0 +1,53 @@
++from fastapi.testclient import TestClient
++
++from service.config import Settings
++from service.main import create_app
++
++URL = "https://example.com/page"
++
++
++def bulk(client, items):
++    return client.post("/api/v1/urls/bulk", json={"items": items})
++
++
++def test_bulk_creates_every_valid_item(client):
++    r = bulk(client, [{"url": f"{URL}/{i}"} for i in range(3)])
++    assert r.status_code == 200
++    data = r.json()
++    assert data["created"] == 3 and data["failed"] == 0
++    codes = [item["link"]["code"] for item in data["results"]]
++    assert len(set(codes)) == 3
++    assert client.get(f"/{codes[0]}").headers["location"] == f"{URL}/0"
++
++
++def test_bulk_reports_per_item_failures_without_failing_the_batch(client):
++    r = bulk(
++        client,
++        [
++            {"url": URL, "custom_alias": "dup-alias"},
++            {"url": "http://127.0.0.1/admin"},
++            {"url": URL, "custom_alias": "dup-alias"},
++            {"url": URL},
++        ],
++    )
++    data = r.json()
++    assert r.status_code == 200
++    assert [x["ok"] for x in data["results"]] == [True, False, False, True]
++    assert "private" in data["results"][1]["error"]
++    assert "already in use" in data["results"][2]["error"]
++    assert data["created"] == 2 and data["failed"] == 2
++
++
++def test_bulk_rejects_empty_and_oversized_batches(client):
++    assert bulk(client, []).status_code == 422
++    assert bulk(client, [{"url": URL}] * 101).status_code == 422
++    assert client.post("/api/v1/urls/bulk", json={"items": [], "x": 1}).status_code == 422
++
++
++def test_bulk_items_count_against_rate_limit():
++    app = create_app(Settings(database_url="sqlite://", rate_limit_requests=2))
++    c = TestClient(app)
++    data = bulk(c, [{"url": f"{URL}/{i}"} for i in range(3)]).json()
++    assert [x["ok"] for x in data["results"]] == [True, True, False]
++    assert data["results"][2]["error"] == "rate limit exceeded"
++    app.state.engine.dispose()

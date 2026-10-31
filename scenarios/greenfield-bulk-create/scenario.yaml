@@ -1,0 +1,20 @@
+# GREENFIELD: a new capability built from scratch inside the existing service.
+# Control paths shown:
+#  - planning decides the run needs no impact analysis (optional stage skipped dynamically)
+#  - design adds a public API -> human approval checkpoint
+#  - first implementation tries to write a test file outside its allowed paths
+#      -> refused by the autonomy boundary, rolled back, retried with the reason as feedback
+#  - tests and docs in parallel, policy review, release approval
+name: greenfield-bulk-create
+type: greenfield
+requirement: |
+  Marketing imports campaign links from spreadsheets and has to create them one at a time.
+  Build a way to shorten many URLs in a single request, up to 100 at once. Bad rows must not
+  block the good ones, and the bulk path must not become a way around our abuse protection.
+demo_steps:
+  - approve: design
+    by: "Vasanth (tech lead)"
+    comment: "Partial-success contract approved; 200 with per-item results is fine"
+  - approve: release
+    by: "Vasanth (tech lead)"
+    comment: "Reviewed patch, tests and docs"

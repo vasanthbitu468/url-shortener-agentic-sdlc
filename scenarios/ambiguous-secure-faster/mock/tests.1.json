@@ -1,0 +1,21 @@
+{
+  "edits": [
+    {
+      "path": "tests/unit/test_denylist.py",
+      "action": "create",
+      "content": "from service.config import Settings, parse_domains\nfrom service.core.validation import destination_is_blocked, is_blocked_host\n\nBLOCKED = frozenset({\"phish.example\", \"bad.test\"})\n\n\ndef test_parse_domains_normalises():\n    assert parse_domains(\" Phish.Example. , ,bad.test\") == BLOCKED\n    assert parse_domains(\"\") == frozenset()\n    assert Settings(blocked_domains=\"a.com,b.com\").blocked_domain_set == {\"a.com\", \"b.com\"}\n\n\ndef test_blocked_host_matches_domain_and_subdomains_only():\n    assert is_blocked_host(\"phish.example\", BLOCKED)\n    assert is_blocked_host(\"login.PHISH.example.\", BLOCKED)\n    assert not is_blocked_host(\"notphish.example\", BLOCKED)\n    assert not is_blocked_host(\"phish.example.com\", BLOCKED)\n\n\ndef test_destination_is_blocked():\n    assert destination_is_blocked(\"https://www.bad.test/x\", BLOCKED)\n    assert not destination_is_blocked(\"https://good.example/x\", BLOCKED)\n    assert not destination_is_blocked(\"https://bad.test/x\", frozenset())\n"
+    },
+    {
+      "path": "tests/integration/test_denylist_create.py",
+      "action": "create",
+      "content": "import pytest\nfrom fastapi.testclient import TestClient\n\nfrom service.config import Settings\nfrom service.main import create_app\n\n\n@pytest.fixture\ndef guarded():\n    app = create_app(Settings(database_url=\"sqlite://\", blocked_domains=\"phish.example\"))\n    yield TestClient(app, follow_redirects=False)\n    app.state.engine.dispose()\n\n\n@pytest.mark.parametrize(\"url\", [\"https://phish.example/login\", \"http://secure.phish.example/\"])\ndef test_blocked_destinations_cannot_be_shortened(guarded, url):\n    r = guarded.post(\"/api/v1/urls\", json={\"url\": url})\n    assert r.status_code == 422\n    assert r.json()[\"detail\"] == \"destination domain is blocked\"\n\n\ndef test_other_destinations_still_work(guarded):\n    r = guarded.post(\"/api/v1/urls\", json={\"url\": \"https://phish.example.org/ok\"})\n    assert r.status_code == 201\n"
+    }
+  ],
+  "summary": "Matching and create tests",
+  "decisions": [
+    {
+      "summary": "Test lookalike domains",
+      "rationale": "Most likely matching bug"
+    }
+  ]
+}

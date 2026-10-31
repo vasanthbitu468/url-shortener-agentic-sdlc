@@ -1,0 +1,12 @@
+{
+  "patch_file": "changes.patch",
+  "patch_lines": 123,
+  "files": [
+    "docs/changes/version-endpoint.md",
+    "service/api/version.py",
+    "service/main.py",
+    "service/openapi.json",
+    "tests/integration/test_version.py"
+  ],
+  "needs_approval": []
+}

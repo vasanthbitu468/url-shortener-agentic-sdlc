@@ -1,0 +1,33 @@
+{
+  "edits": [
+    {
+      "path": "service/api/bulk.py",
+      "action": "create",
+      "content": "\"\"\"Bulk link creation: shorten up to 100 URLs in one request.\n\nEach item is validated and created independently, so one bad URL does not fail the batch.\nEvery item counts against the caller's rate limit; items over the limit are reported as\nfailed rather than silently dropped.\n\"\"\"\n\nfrom fastapi import APIRouter, Depends, Request\nfrom pydantic import BaseModel, ConfigDict, Field\n\nfrom service.api.routes import get_link_service, to_response\nfrom service.api.schemas import CreateUrlRequest, ErrorResponse, UrlResponse\nfrom service.core.links import AliasTakenError, CodeSpaceExhaustedError, LinkService\nfrom service.core.validation import ValidationError\n\nMAX_BATCH = 100\n\nrouter = APIRouter(prefix=\"/api/v1\", tags=[\"urls\"])\n\n\nclass BulkCreateRequest(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\")\n\n    items: list[CreateUrlRequest] = Field(..., min_length=1, max_length=MAX_BATCH)\n\n\nclass BulkItemResult(BaseModel):\n    index: int\n    ok: bool\n    link: UrlResponse | None = None\n    error: str | None = None\n\n\nclass BulkCreateResponse(BaseModel):\n    created: int\n    failed: int\n    results: list[BulkItemResult]\n\n\n@router.post(\n    \"/urls/bulk\",\n    response_model=BulkCreateResponse,\n    responses={422: {\"model\": ErrorResponse, \"description\": \"Invalid batch\"}},\n)\ndef bulk_create(\n    body: BulkCreateRequest,\n    request: Request,\n    service: LinkService = Depends(get_link_service),\n) -> BulkCreateResponse:\n    limiter = request.app.state.rate_limiter\n    client = request.client.host if request.client else \"unknown\"\n    base_url = request.app.state.settings.base_url\n\n    results: list[BulkItemResult] = []\n    for index, item in enumerate(body.items):\n        if not limiter.allow(client):\n            results.append(BulkItemResult(index=index, ok=False, error=\"rate limit exceeded\"))\n            continue\n        try:\n            created = service.create(\n                item.url, custom_alias=item.custom_alias, expires_at=item.expires_at\n            )\n        except (ValidationError, AliasTakenError, CodeSpaceExhaustedError) as exc:\n            results.append(BulkItemResult(index=index, ok=False, error=str(exc)))\n        else:\n            results.append(\n                BulkItemResult(index=index, ok=True, link=to_response(created.url, base_url))\n            )\n\n    ok = sum(r.ok for r in results)\n    return BulkCreateResponse(created=ok, failed=len(results) - ok, results=results)\n"
+    },
+    {
+      "path": "service/main.py",
+      "action": "replace",
+      "find": "from service.api.routes import api, ops, redirect\n",
+      "replace": "from service.api.bulk import router as bulk_router\nfrom service.api.routes import api, ops, redirect\n"
+    },
+    {
+      "path": "service/main.py",
+      "action": "replace",
+      "find": "    app.include_router(api)\n",
+      "replace": "    app.include_router(api)\n    app.include_router(bulk_router)\n"
+    }
+  ],
+  "regenerate_openapi": true,
+  "summary": "Added bulk router and registered it; tests left to the test agent as required",
+  "decisions": [
+    {
+      "summary": "Reuse LinkService.create per item",
+      "rationale": "Keeps one implementation of validation, SSRF protection and alias rules"
+    },
+    {
+      "summary": "Removed the test file from this change",
+      "rationale": "Previous attempt was refused: implementation may only write under service/"
+    }
+  ]
+}

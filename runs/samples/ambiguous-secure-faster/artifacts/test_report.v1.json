@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "new_tests": [
+    "tests/integration/test_denylist_create.py",
+    "tests/unit/test_denylist.py"
+  ],
+  "counts": {
+    "passed": 75
+  },
+  "output_tail": "........................................................................ [ 96%]\n...                                                                      [100%]\n75 passed in 1.00s\n"
+}

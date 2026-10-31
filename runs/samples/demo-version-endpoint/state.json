@@ -1,0 +1,532 @@
+{
+  "run_id": "demo-version-endpoint",
+  "scenario": {
+    "name": "demo-version-endpoint",
+    "type": "brownfield",
+    "requirement": "Ops keep asking which build is deployed. Add an endpoint that tells us the service version.\n",
+    "faults": {
+      "docs": 1
+    },
+    "mock_dir": "scenarios/demo-version-endpoint/mock",
+    "source": "scenarios/demo-version-endpoint/scenario.yaml"
+  },
+  "status": "completed",
+  "stages": {
+    "requirements": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {},
+      "output_hashes": {
+        "spec": "fbf4b75f633ea1a6"
+      },
+      "checkpoint": "cp001",
+      "feedback": [],
+      "summary": "Expose service version endpoint: 4 acceptance criteria, 0 ambiguities",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "requirements-c67ee279"
+      ]
+    },
+    "planning": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "fbf4b75f633ea1a6"
+      },
+      "output_hashes": {
+        "plan": "b5d6dd5d91612bc6"
+      },
+      "checkpoint": "cp002",
+      "feedback": [],
+      "summary": "6 tasks, 2 risks",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "planning-ac6365a1"
+      ]
+    },
+    "impact_analysis": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "fbf4b75f633ea1a6",
+        "plan": "b5d6dd5d91612bc6"
+      },
+      "output_hashes": {
+        "impact": "50c2888a7a43f905"
+      },
+      "checkpoint": "cp003",
+      "feedback": [],
+      "summary": "3 modules affected, risk low",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "impact_analysis-39af8c70"
+      ]
+    },
+    "design": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "fbf4b75f633ea1a6",
+        "plan": "b5d6dd5d91612bc6",
+        "impact": "50c2888a7a43f905"
+      },
+      "output_hashes": {
+        "design": "073622909cdc0ec4"
+      },
+      "checkpoint": "cp004",
+      "feedback": [],
+      "summary": "New APIRouter in service/api/version.py exposing GET /api/v1/version, returning VersionResponse{version}; registered in create_app before the redirect router.",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "design-f99593e9"
+      ]
+    },
+    "implementation": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 2,
+      "reworks": 1,
+      "input_hashes": {
+        "spec": "fbf4b75f633ea1a6",
+        "design": "073622909cdc0ec4"
+      },
+      "output_hashes": {
+        "implementation": "e98636b14ae8bb81"
+      },
+      "checkpoint": "cp008",
+      "feedback": [],
+      "summary": "changed 3 files: service/api/version.py, service/main.py, service/openapi.json",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "implementation-18a8be75"
+      ]
+    },
+    "tests": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 2,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "fbf4b75f633ea1a6",
+        "implementation": "e98636b14ae8bb81"
+      },
+      "output_hashes": {
+        "test_report": "753f969cbac9c396"
+      },
+      "checkpoint": "cp009",
+      "feedback": [],
+      "summary": "suite passed {'passed': 71}",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "tests-9a67a4f3"
+      ]
+    },
+    "docs": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 3,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "fbf4b75f633ea1a6",
+        "design": "073622909cdc0ec4"
+      },
+      "output_hashes": {
+        "docs": "db6ae112b22d1027"
+      },
+      "checkpoint": "cp009",
+      "feedback": [],
+      "summary": "wrote docs/changes/version-endpoint.md",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "docs-2fdb5ee1"
+      ]
+    },
+    "review": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 2,
+      "reworks": 0,
+      "input_hashes": {
+        "design": "073622909cdc0ec4",
+        "implementation": "e98636b14ae8bb81",
+        "test_report": "753f969cbac9c396",
+        "docs": "db6ae112b22d1027"
+      },
+      "output_hashes": {
+        "policy_report": "a7ad04d354b32d40"
+      },
+      "checkpoint": "cp010",
+      "feedback": [],
+      "summary": "5 files, 74 changed lines, 0 findings (0 blocking)",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "review-9667a170"
+      ]
+    },
+    "release": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "policy_report": "a7ad04d354b32d40",
+        "test_report": "753f969cbac9c396"
+      },
+      "output_hashes": {
+        "release": "478ea2b4d5f94013"
+      },
+      "checkpoint": "cp011",
+      "feedback": [],
+      "summary": "patch ready: 5 files, 123 lines",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "release-eb8753e9"
+      ]
+    }
+  },
+  "artifacts": {
+    "spec": {
+      "hash": "fbf4b75f633ea1a6",
+      "version": 1,
+      "producer": "requirements",
+      "path": "artifacts/spec.v1.json"
+    },
+    "plan": {
+      "hash": "b5d6dd5d91612bc6",
+      "version": 1,
+      "producer": "planning",
+      "path": "artifacts/plan.v1.json"
+    },
+    "impact": {
+      "hash": "50c2888a7a43f905",
+      "version": 1,
+      "producer": "impact_analysis",
+      "path": "artifacts/impact.v1.json"
+    },
+    "design": {
+      "hash": "073622909cdc0ec4",
+      "version": 1,
+      "producer": "design",
+      "path": "artifacts/design.v1.json"
+    },
+    "implementation": {
+      "hash": "e98636b14ae8bb81",
+      "version": 2,
+      "producer": "implementation",
+      "path": "artifacts/implementation.v2.json"
+    },
+    "docs": {
+      "hash": "db6ae112b22d1027",
+      "version": 1,
+      "producer": "docs",
+      "path": "artifacts/docs.v1.json"
+    },
+    "test_report": {
+      "hash": "753f969cbac9c396",
+      "version": 2,
+      "producer": "tests",
+      "path": "artifacts/test_report.v2.json"
+    },
+    "policy_report": {
+      "hash": "a7ad04d354b32d40",
+      "version": 1,
+      "producer": "review",
+      "path": "artifacts/policy_report.v1.json"
+    },
+    "release": {
+      "hash": "478ea2b4d5f94013",
+      "version": 1,
+      "producer": "release",
+      "path": "artifacts/release.v1.json"
+    }
+  },
+  "decisions": [
+    {
+      "id": "requirements-c67ee279",
+      "stage": "requirements",
+      "summary": "Version is read from app.version",
+      "rationale": "Avoids a second place to update on release",
+      "inputs": {},
+      "parents": [],
+      "actor": "agent"
+    },
+    {
+      "id": "planning-ac6365a1",
+      "stage": "planning",
+      "summary": "Keep impact analysis",
+      "rationale": "Brownfield change to routing order in an existing app",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6"
+      },
+      "parents": [
+        "requirements-c67ee279"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "impact_analysis-39af8c70",
+      "stage": "impact_analysis",
+      "summary": "Change is additive; no schema impact",
+      "rationale": "No model or migration touched",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "plan": "b5d6dd5d91612bc6"
+      },
+      "parents": [
+        "requirements-c67ee279",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "design-f99593e9",
+      "stage": "design",
+      "summary": "Separate router module",
+      "rationale": "Keeps routes.py focused on link operations",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "impact": "50c2888a7a43f905"
+      },
+      "parents": [
+        "requirements-c67ee279",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "approval-design-1",
+      "stage": "design",
+      "summary": "design approved",
+      "rationale": "API addition is fine",
+      "inputs": {
+        "design": "073622909cdc0ec4"
+      },
+      "parents": [
+        "design-f99593e9"
+      ],
+      "actor": "human:Vasanth (tech lead)"
+    },
+    {
+      "id": "implementation-5bc988d1",
+      "stage": "implementation",
+      "summary": "Router registered before redirect catch-all",
+      "rationale": "Prevents /{code} from shadowing it",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "design": "073622909cdc0ec4"
+      },
+      "parents": [
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "docs-4f59621d",
+      "stage": "docs",
+      "summary": "Docs live under docs/changes/",
+      "rationale": "One file per change keeps history readable",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "design": "073622909cdc0ec4"
+      },
+      "parents": [
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "implementation-5bc988d1",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "tests-54c0d5e9",
+      "stage": "tests",
+      "summary": "Assert against app.version, not a literal",
+      "rationale": "Test stays valid across releases",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "implementation": "d6cf94da70aaf967"
+      },
+      "parents": [
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "implementation-5bc988d1",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "implementation-18a8be75",
+      "stage": "implementation",
+      "summary": "Removed hard-coded key",
+      "rationale": "Policy security.no_secrets; secrets belong in environment configuration",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "design": "073622909cdc0ec4"
+      },
+      "parents": [
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "docs-2fdb5ee1",
+      "stage": "docs",
+      "summary": "Docs live under docs/changes/",
+      "rationale": "One file per change keeps history readable",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "design": "073622909cdc0ec4"
+      },
+      "parents": [
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "implementation-18a8be75",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "tests-9a67a4f3",
+      "stage": "tests",
+      "summary": "Assert against app.version, not a literal",
+      "rationale": "Test stays valid across releases",
+      "inputs": {
+        "spec": "fbf4b75f633ea1a6",
+        "implementation": "e98636b14ae8bb81"
+      },
+      "parents": [
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "implementation-18a8be75",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "review-9667a170",
+      "stage": "review",
+      "summary": "Policy review: pass",
+      "rationale": "8 rules evaluated plus lint",
+      "inputs": {
+        "design": "073622909cdc0ec4",
+        "implementation": "e98636b14ae8bb81",
+        "test_report": "753f969cbac9c396",
+        "docs": "db6ae112b22d1027"
+      },
+      "parents": [
+        "docs-2fdb5ee1",
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "implementation-18a8be75",
+        "tests-9a67a4f3",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "release-eb8753e9",
+      "stage": "release",
+      "summary": "Release candidate prepared",
+      "rationale": "all upstream gates passed",
+      "inputs": {
+        "test_report": "753f969cbac9c396",
+        "policy_report": "a7ad04d354b32d40"
+      },
+      "parents": [
+        "docs-2fdb5ee1",
+        "review-9667a170",
+        "design-f99593e9",
+        "requirements-c67ee279",
+        "implementation-18a8be75",
+        "tests-9a67a4f3",
+        "impact_analysis-39af8c70",
+        "planning-ac6365a1"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "approval-release-2",
+      "stage": "release",
+      "summary": "release approved",
+      "rationale": "Ship it",
+      "inputs": {
+        "release": "478ea2b4d5f94013"
+      },
+      "parents": [
+        "release-eb8753e9"
+      ],
+      "actor": "human:Vasanth (tech lead)"
+    }
+  ],
+  "approvals": [
+    {
+      "stage": "design",
+      "decision": "approved",
+      "actor": "Vasanth (tech lead)",
+      "comment": "API addition is fine",
+      "ts": "2026-10-31T07:22:30.759733+00:00",
+      "output_hashes": {
+        "design": "073622909cdc0ec4"
+      }
+    },
+    {
+      "stage": "release",
+      "decision": "approved",
+      "actor": "Vasanth (tech lead)",
+      "comment": "Ship it",
+      "ts": "2026-10-31T07:22:36.164550+00:00",
+      "output_hashes": {
+        "release": "478ea2b4d5f94013"
+      }
+    }
+  ],
+  "llm_calls": {
+    "requirements": 1,
+    "planning": 1,
+    "impact_analysis": 1,
+    "design": 1,
+    "implementation": 2,
+    "tests": 2,
+    "docs": 2
+  },
+  "total_reworks": 1,
+  "message": "release ready: review changes.patch and pr_description.md"
+}

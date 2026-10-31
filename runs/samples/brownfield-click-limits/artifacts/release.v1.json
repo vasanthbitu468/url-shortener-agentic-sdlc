@@ -1,0 +1,22 @@
+{
+  "patch_file": "changes.patch",
+  "patch_lines": 410,
+  "files": [
+    "docs/changes/click-limits.md",
+    "service/api/routes.py",
+    "service/api/schemas.py",
+    "service/core/links.py",
+    "service/db/models.py",
+    "service/db/session.py",
+    "service/openapi.json",
+    "tests/integration/test_max_clicks.py"
+  ],
+  "needs_approval": [
+    {
+      "rule": "change_control.schema",
+      "severity": "approval",
+      "message": "database schema change",
+      "path": "service/db/models.py"
+    }
+  ]
+}

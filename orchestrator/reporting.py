@@ -101,6 +101,11 @@ def write_summary(store: RunStore, state: RunState, graph: Graph) -> str:
             + (f" - {a['comment']}" if a["comment"] else "")
             for a in state.approvals
         ],
+        *[
+            f"- {d['summary']}" + (f" - {d['rationale']}" if d.get("rationale") else "")
+            for d in state.decisions
+            if d["stage"] in ("human", "engine")  # artifact edits and the re-plans they caused
+        ],
         "",
         "## Validation",
         "",
@@ -143,5 +148,5 @@ def write_summary(store: RunStore, state: RunState, graph: Graph) -> str:
         "",
     ]
     text = "\n".join(out)
-    (store.dir / "summary.md").write_text(text, encoding="utf-8")
+    (store.dir / "summary.md").write_text(text, encoding="utf-8", newline="\n")
     return text

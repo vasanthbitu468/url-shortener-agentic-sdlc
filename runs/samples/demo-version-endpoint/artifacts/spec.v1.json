@@ -1,0 +1,20 @@
+{
+  "title": "Expose service version endpoint",
+  "description": "Add a read-only endpoint that returns the running service version so operators and clients can confirm which build is deployed.",
+  "acceptance_criteria": [
+    "GET /api/v1/version returns 200 with JSON body {\"version\": \"<semver>\"}",
+    "The version equals the FastAPI application version (single source of truth)",
+    "The endpoint is documented in the OpenAPI contract",
+    "Existing redirect behaviour for short codes is unchanged"
+  ],
+  "ambiguities": [],
+  "assumptions": [
+    "No authentication is required; the version is not sensitive"
+  ],
+  "non_functional": [
+    "Response time under 10 ms; no database access"
+  ],
+  "out_of_scope": [
+    "Build metadata such as git SHA or build time"
+  ]
+}

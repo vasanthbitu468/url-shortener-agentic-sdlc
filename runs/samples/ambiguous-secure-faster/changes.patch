@@ -1,0 +1,240 @@
+diff --git a/docs/changes/denylist.md b/docs/changes/denylist.md
+new file mode 100644
+--- /dev/null
++++ b/docs/changes/denylist.md
+@@ -0,0 +1,22 @@
++# Destination denylist
++
++Operators can stop the shortener from fronting phishing or malware sites.
++
++```bash
++APP_BLOCKED_DOMAINS="phish.example,malware.test"
++```
++
++- A domain blocks itself and all subdomains (`login.phish.example`), case-insensitively.
++  Lookalikes such as `phish.example.org` are not blocked.
++- Creating a link to a blocked destination returns `422 destination domain is blocked`.
++- Existing links to a blocked destination stop redirecting and return
++  `410 destination has been blocked`, including links already in the redirect cache.
++  Removing the domain from the list restores them; nothing is deleted.
++
++## How this scope was decided
++
++The request was "make the links more secure and faster". The requirements stage listed three
++ambiguities with proposed defaults, which were signed off. Performance work is deferred until
++measured: hot redirects are already served from the in-process cache.
++
++The product owner later clarified that existing links must be blocked too; the pipeline re-planned from that change.
+diff --git a/service/api/routes.py b/service/api/routes.py
+--- a/service/api/routes.py
++++ b/service/api/routes.py
+@@ -25,7 +25,7 @@
+     LinkService,
+     as_utc,
+ )
+-from service.core.validation import ValidationError
++from service.core.validation import ValidationError, destination_is_blocked
+ from service.db.models import Url
+ 
+ api = APIRouter(prefix="/api/v1", tags=["urls"])
+@@ -52,6 +52,7 @@
+         code_max_attempts=s.code_max_attempts,
+         max_url_length=s.max_url_length,
+         own_host=urlsplit(s.base_url).hostname,
++        blocked_domains=s.blocked_domain_set,
+     )
+ 
+ 
+@@ -222,6 +223,11 @@
+         long_url = url.long_url
+         cache.set(code, (long_url, as_utc(url.expires_at)))
+ 
++    # Re-checked on every redirect, so links created before a domain was blocked stop working
++    # as soon as the denylist is updated (cached links included).
++    if destination_is_blocked(long_url, request.app.state.settings.blocked_domain_set):
++        raise HTTPException(status_code=410, detail="destination has been blocked")
++
+     background.add_task(
+         _record_click,
+         request.app,
+diff --git a/service/config.py b/service/config.py
+--- a/service/config.py
++++ b/service/config.py
+@@ -24,6 +24,18 @@
+     cache_ttl_seconds: int = 300
+     cache_max_entries: int = 10_000
+ 
++    # Destination denylist, comma-separated (e.g. "phish.example,malware.test").
++    # A domain also blocks all of its subdomains.
++    blocked_domains: str = ""
++
++    @property
++    def blocked_domain_set(self) -> frozenset[str]:
++        return parse_domains(self.blocked_domains)
++
++
++def parse_domains(raw: str) -> frozenset[str]:
++    return frozenset(d.strip().lower().rstrip(".") for d in raw.split(",") if d.strip())
++
+ 
+ @lru_cache
+ def get_settings() -> Settings:
+diff --git a/service/core/links.py b/service/core/links.py
+--- a/service/core/links.py
++++ b/service/core/links.py
+@@ -68,6 +68,7 @@
+         code_max_attempts: int,
+         max_url_length: int,
+         own_host: str | None = None,
++        blocked_domains: frozenset[str] = frozenset(),
+         ua_salt: str = "url-shortener",
+     ) -> None:
+         self.session = session
+@@ -75,6 +76,7 @@
+         self.code_max_attempts = code_max_attempts
+         self.max_url_length = max_url_length
+         self.own_host = own_host
++        self.blocked_domains = blocked_domains
+         self._ua_salt = ua_salt.encode()
+ 
+     # ---- create -------------------------------------------------------------------------
+@@ -88,7 +90,10 @@
+         idempotency_key: str | None = None,
+     ) -> CreateResult:
+         long_url = validate_target_url(
+-            long_url, max_length=self.max_url_length, own_host=self.own_host
++            long_url,
++            max_length=self.max_url_length,
++            own_host=self.own_host,
++            blocked_domains=self.blocked_domains,
+         )
+         if custom_alias is not None:
+             custom_alias = validate_alias(custom_alias)
+diff --git a/service/core/validation.py b/service/core/validation.py
+--- a/service/core/validation.py
++++ b/service/core/validation.py
+@@ -26,7 +26,23 @@
+     """Raised when user input is rejected. The message is safe to return to clients."""
+ 
+ 
+-def validate_target_url(url: str, *, max_length: int, own_host: str | None = None) -> str:
++def is_blocked_host(host: str, blocked: frozenset[str]) -> bool:
++    """True if ``host`` is a blocked domain or a subdomain of one."""
++    host = host.lower().rstrip(".")
++    return any(host == d or host.endswith("." + d) for d in blocked)
++
++
++def destination_is_blocked(url: str, blocked: frozenset[str]) -> bool:
++    return bool(blocked) and is_blocked_host(urlsplit(url).hostname or "", blocked)
++
++
++def validate_target_url(
++    url: str,
++    *,
++    max_length: int,
++    own_host: str | None = None,
++    blocked_domains: frozenset[str] = frozenset(),
++) -> str:
+     url = url.strip()
+     if not url:
+         raise ValidationError("url must not be empty")
+@@ -44,6 +60,8 @@
+         raise ValidationError("url must include a host")
+     if host in BLOCKED_HOSTNAMES or host.endswith(".localhost"):
+         raise ValidationError("url host is not allowed")
++    if blocked_domains and is_blocked_host(host, blocked_domains):
++        raise ValidationError("destination domain is blocked")
+     if own_host and host == own_host.lower():
+         raise ValidationError("url must not point to this service")
+ 
+diff --git a/tests/integration/test_denylist_create.py b/tests/integration/test_denylist_create.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/test_denylist_create.py
+@@ -0,0 +1,24 @@
++import pytest
++from fastapi.testclient import TestClient
++
++from service.config import Settings
++from service.main import create_app
++
++
++@pytest.fixture
++def guarded():
++    app = create_app(Settings(database_url="sqlite://", blocked_domains="phish.example"))
++    yield TestClient(app, follow_redirects=False)
++    app.state.engine.dispose()
++
++
++@pytest.mark.parametrize("url", ["https://phish.example/login", "http://secure.phish.example/"])
++def test_blocked_destinations_cannot_be_shortened(guarded, url):
++    r = guarded.post("/api/v1/urls", json={"url": url})
++    assert r.status_code == 422
++    assert r.json()["detail"] == "destination domain is blocked"
++
++
++def test_other_destinations_still_work(guarded):
++    r = guarded.post("/api/v1/urls", json={"url": "https://phish.example.org/ok"})
++    assert r.status_code == 201
+diff --git a/tests/integration/test_denylist_redirect.py b/tests/integration/test_denylist_redirect.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/test_denylist_redirect.py
+@@ -0,0 +1,29 @@
++from fastapi.testclient import TestClient
++
++from service.config import Settings
++from service.main import create_app
++
++
++def test_existing_links_stop_redirecting_once_domain_is_blocked(tmp_path):
++    db = f"sqlite:///{tmp_path / 'links.db'}"
++    before = create_app(Settings(database_url=db))
++    c1 = TestClient(before, follow_redirects=False)
++    code = c1.post("/api/v1/urls", json={"url": "https://login.phish.example/a"}).json()["code"]
++    safe = c1.post("/api/v1/urls", json={"url": "https://good.example/a"}).json()["code"]
++    assert c1.get(f"/{code}").status_code == 302
++    before.state.engine.dispose()
++
++    after = create_app(Settings(database_url=db, blocked_domains="phish.example"))
++    c2 = TestClient(after, follow_redirects=False)
++    r = c2.get(f"/{code}")
++    assert r.status_code == 410
++    assert r.json()["detail"] == "destination has been blocked"
++    assert c2.get(f"/{safe}").status_code == 302
++    after.state.engine.dispose()
++
++
++def test_block_applies_to_cached_links(app, client):
++    code = client.post("/api/v1/urls", json={"url": "https://bad.test/x"}).json()["code"]
++    assert client.get(f"/{code}").status_code == 302  # now cached
++    app.state.settings.blocked_domains = "bad.test"
++    assert client.get(f"/{code}").status_code == 410
+diff --git a/tests/unit/test_denylist.py b/tests/unit/test_denylist.py
+new file mode 100644
+--- /dev/null
++++ b/tests/unit/test_denylist.py
+@@ -0,0 +1,23 @@
++from service.config import Settings, parse_domains
++from service.core.validation import destination_is_blocked, is_blocked_host
++
++BLOCKED = frozenset({"phish.example", "bad.test"})
++
++
++def test_parse_domains_normalises():
++    assert parse_domains(" Phish.Example. , ,bad.test") == BLOCKED
++    assert parse_domains("") == frozenset()
++    assert Settings(blocked_domains="a.com,b.com").blocked_domain_set == {"a.com", "b.com"}
++
++
++def test_blocked_host_matches_domain_and_subdomains_only():
++    assert is_blocked_host("phish.example", BLOCKED)
++    assert is_blocked_host("login.PHISH.example.", BLOCKED)
++    assert not is_blocked_host("notphish.example", BLOCKED)
++    assert not is_blocked_host("phish.example.com", BLOCKED)
++
++
++def test_destination_is_blocked():
++    assert destination_is_blocked("https://www.bad.test/x", BLOCKED)
++    assert not destination_is_blocked("https://good.example/x", BLOCKED)
++    assert not destination_is_blocked("https://bad.test/x", frozenset())

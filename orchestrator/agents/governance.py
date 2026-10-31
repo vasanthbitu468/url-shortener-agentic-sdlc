@@ -91,7 +91,9 @@ class ReleaseAgent(Agent):
             f"_Produced by orchestrator run `{ctx.run_id}`; full audit trail in "
             f"runs/{ctx.run_id}/events.jsonl._",
         ]
-        (ctx.run_dir / "pr_description.md").write_text("\n".join(pr) + "\n", encoding="utf-8")
+        (ctx.run_dir / "pr_description.md").write_text(
+            "\n".join(pr) + "\n", encoding="utf-8", newline="\n"
+        )
 
         patch_lines = patch.count("\n")
         return StageResult(

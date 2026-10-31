@@ -1,0 +1,46 @@
+{
+  "spec": {
+    "title": "Block malicious destinations at link creation",
+    "description": "Interpretation of 'more secure and faster': add an operator-managed denylist of destination domains so the service cannot be used to shorten phishing or malware links. Performance work is deferred until it is measured.",
+    "acceptance_criteria": [
+      "Operators configure blocked domains with APP_BLOCKED_DOMAINS (comma-separated)",
+      "A blocked domain also blocks all of its subdomains, case-insensitively",
+      "Creating a link to a blocked destination returns 422 'destination domain is blocked'",
+      "Lookalike domains (e.g. phish.example.org for phish.example) are not blocked"
+    ],
+    "ambiguities": [
+      {
+        "question": "'More secure' against what threat: abuse by link creators, account takeover, or data exposure?",
+        "proposed_default": "Abuse: stop the shortener from fronting phishing/malware destinations, using an operator-managed domain denylist"
+      },
+      {
+        "question": "Should blocking also disable links that already exist?",
+        "proposed_default": "No: block at creation only; existing links are unaffected"
+      },
+      {
+        "question": "'Faster' for which operation, and what is the target?",
+        "proposed_default": "No change now: redirects for hot links are already served from the in-process cache; measure p95/p99 before optimising"
+      }
+    ],
+    "assumptions": [
+      "Denylist is small (hundreds of domains) and changes via deployment config"
+    ],
+    "non_functional": [
+      "Denylist check adds negligible latency (set lookup per label)"
+    ],
+    "out_of_scope": [
+      "Performance work (pending measurement)",
+      "Third-party threat feeds"
+    ]
+  },
+  "decisions": [
+    {
+      "summary": "Interpret 'secure' as abuse prevention",
+      "rationale": "Phishing complaints are the only concrete security signal in the request"
+    },
+    {
+      "summary": "Defer 'faster'",
+      "rationale": "No baseline measurement exists; optimising blind risks complexity for no gain"
+    }
+  ]
+}

@@ -1,0 +1,495 @@
+{
+  "run_id": "brownfield-click-limits",
+  "scenario": {
+    "name": "brownfield-click-limits",
+    "type": "brownfield",
+    "requirement": "1) Sales wants one-time and limited-use links: a link should stop working after a set number\n   of clicks. Existing links and existing databases must keep working.\n2) Bug report: if a client retries a create request with the same Idempotency-Key after the\n   link was deleted, it gets 200 and a short URL that is already dead.\n",
+    "faults": {},
+    "mock_dir": "scenarios/brownfield-click-limits/mock",
+    "source": "scenarios/brownfield-click-limits/scenario.yaml"
+  },
+  "status": "completed",
+  "stages": {
+    "requirements": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {},
+      "output_hashes": {
+        "spec": "b35cba9201a6e447"
+      },
+      "checkpoint": "cp001",
+      "feedback": [],
+      "summary": "Click-limited links, plus fix for idempotent replay of deleted links: 6 acceptance criteria, 0 ambiguities",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "requirements-fbcbf680",
+        "requirements-7c77cb54"
+      ]
+    },
+    "planning": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "b35cba9201a6e447"
+      },
+      "output_hashes": {
+        "plan": "22d174b781170c1b"
+      },
+      "checkpoint": "cp002",
+      "feedback": [],
+      "summary": "8 tasks, 3 risks",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "planning-81a22f66"
+      ]
+    },
+    "impact_analysis": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "b35cba9201a6e447",
+        "plan": "22d174b781170c1b"
+      },
+      "output_hashes": {
+        "impact": "44d6f52c2d0cc45e"
+      },
+      "checkpoint": "cp003",
+      "feedback": [],
+      "summary": "6 modules affected, risk medium",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "impact_analysis-4736b733"
+      ]
+    },
+    "design": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "b35cba9201a6e447",
+        "plan": "22d174b781170c1b",
+        "impact": "44d6f52c2d0cc45e"
+      },
+      "output_hashes": {
+        "design": "db029f81b73a9653"
+      },
+      "checkpoint": "cp004",
+      "feedback": [],
+      "summary": "Add nullable urls.max_clicks. LinkService enforces it in ensure_active (click_count >= max_clicks -> 410). Redirect cache stores only unlimited links. init_db gains an additive migration that adds missing nullable columns. Idempotent replay of a deleted link raises LinkGoneError -> 410.",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "design-f79878e3"
+      ]
+    },
+    "implementation": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "b35cba9201a6e447",
+        "design": "db029f81b73a9653"
+      },
+      "output_hashes": {
+        "implementation": "dab1f5862a1c14a0"
+      },
+      "checkpoint": "cp005",
+      "feedback": [],
+      "summary": "changed 6 files: service/api/routes.py, service/api/schemas.py, service/core/links.py, service/db/models.py, service/db/session.py, service/openapi.json",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "implementation-d6ce4d7c"
+      ]
+    },
+    "tests": {
+      "status": "completed",
+      "attempts": 2,
+      "executions": 2,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "b35cba9201a6e447",
+        "implementation": "dab1f5862a1c14a0"
+      },
+      "output_hashes": {
+        "test_report": "1d0fba93fed3f7b6"
+      },
+      "checkpoint": "cp006",
+      "feedback": [],
+      "summary": "suite passed {'passed': 76}",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "tests-23585e22"
+      ]
+    },
+    "docs": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "b35cba9201a6e447",
+        "design": "db029f81b73a9653"
+      },
+      "output_hashes": {
+        "docs": "517615b53c22a737"
+      },
+      "checkpoint": "cp006",
+      "feedback": [],
+      "summary": "wrote docs/changes/click-limits.md",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "docs-4e23de84"
+      ]
+    },
+    "review": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "design": "db029f81b73a9653",
+        "implementation": "dab1f5862a1c14a0",
+        "test_report": "1d0fba93fed3f7b6",
+        "docs": "517615b53c22a737"
+      },
+      "output_hashes": {
+        "policy_report": "6fb673553380ca9c"
+      },
+      "checkpoint": "cp007",
+      "feedback": [],
+      "summary": "8 files, 242 changed lines, 1 findings (0 blocking)",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "review-15ca034d"
+      ]
+    },
+    "release": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "policy_report": "6fb673553380ca9c",
+        "test_report": "1d0fba93fed3f7b6"
+      },
+      "output_hashes": {
+        "release": "00e3aabd86292892"
+      },
+      "checkpoint": "cp008",
+      "feedback": [],
+      "summary": "patch ready: 8 files, 410 lines",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "release-0c9efa11"
+      ]
+    }
+  },
+  "artifacts": {
+    "spec": {
+      "hash": "b35cba9201a6e447",
+      "version": 1,
+      "producer": "requirements",
+      "path": "artifacts/spec.v1.json"
+    },
+    "plan": {
+      "hash": "22d174b781170c1b",
+      "version": 1,
+      "producer": "planning",
+      "path": "artifacts/plan.v1.json"
+    },
+    "impact": {
+      "hash": "44d6f52c2d0cc45e",
+      "version": 1,
+      "producer": "impact_analysis",
+      "path": "artifacts/impact.v1.json"
+    },
+    "design": {
+      "hash": "db029f81b73a9653",
+      "version": 1,
+      "producer": "design",
+      "path": "artifacts/design.v1.json"
+    },
+    "implementation": {
+      "hash": "dab1f5862a1c14a0",
+      "version": 1,
+      "producer": "implementation",
+      "path": "artifacts/implementation.v1.json"
+    },
+    "docs": {
+      "hash": "517615b53c22a737",
+      "version": 1,
+      "producer": "docs",
+      "path": "artifacts/docs.v1.json"
+    },
+    "test_report": {
+      "hash": "1d0fba93fed3f7b6",
+      "version": 1,
+      "producer": "tests",
+      "path": "artifacts/test_report.v1.json"
+    },
+    "policy_report": {
+      "hash": "6fb673553380ca9c",
+      "version": 1,
+      "producer": "review",
+      "path": "artifacts/policy_report.v1.json"
+    },
+    "release": {
+      "hash": "00e3aabd86292892",
+      "version": 1,
+      "producer": "release",
+      "path": "artifacts/release.v1.json"
+    }
+  },
+  "decisions": [
+    {
+      "id": "requirements-fbcbf680",
+      "stage": "requirements",
+      "summary": "Treat the replay issue as a bug, not a feature",
+      "rationale": "A 200 with a dead link misleads retrying clients into using a broken URL",
+      "inputs": {},
+      "parents": [],
+      "actor": "agent"
+    },
+    {
+      "id": "requirements-7c77cb54",
+      "stage": "requirements",
+      "summary": "Accept approximate limits",
+      "rationale": "Strict counting needs a transactional counter; not worth the redirect latency for this use case",
+      "inputs": {},
+      "parents": [],
+      "actor": "agent"
+    },
+    {
+      "id": "planning-81a22f66",
+      "stage": "planning",
+      "summary": "Keep impact analysis",
+      "rationale": "Change touches the schema, cache and idempotency paths",
+      "inputs": {
+        "spec": "b35cba9201a6e447"
+      },
+      "parents": [
+        "requirements-fbcbf680",
+        "requirements-7c77cb54"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "impact_analysis-4736b733",
+      "stage": "impact_analysis",
+      "summary": "Migration is required",
+      "rationale": "create_all does not alter existing tables",
+      "inputs": {
+        "spec": "b35cba9201a6e447",
+        "plan": "22d174b781170c1b"
+      },
+      "parents": [
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "design-f79878e3",
+      "stage": "design",
+      "summary": "Enforce in ensure_active",
+      "rationale": "Keeps metadata, redirect and cache paths consistent",
+      "inputs": {
+        "spec": "b35cba9201a6e447",
+        "impact": "44d6f52c2d0cc45e"
+      },
+      "parents": [
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "impact_analysis-4736b733",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "approval-design-1",
+      "stage": "design",
+      "summary": "design approved",
+      "rationale": "Schema change is additive and nullable; migration approach accepted",
+      "inputs": {
+        "design": "db029f81b73a9653"
+      },
+      "parents": [
+        "design-f79878e3"
+      ],
+      "actor": "human:Vasanth (tech lead)"
+    },
+    {
+      "id": "implementation-d6ce4d7c",
+      "stage": "implementation",
+      "summary": "Refuse NOT NULL auto-migrations",
+      "rationale": "Silent backfill would be a data change without review",
+      "inputs": {
+        "spec": "b35cba9201a6e447",
+        "design": "db029f81b73a9653"
+      },
+      "parents": [
+        "design-f79878e3",
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "impact_analysis-4736b733",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "docs-4e23de84",
+      "stage": "docs",
+      "summary": "Include upgrade notes",
+      "rationale": "Operators need to know the schema changes at startup",
+      "inputs": {
+        "spec": "b35cba9201a6e447",
+        "design": "db029f81b73a9653"
+      },
+      "parents": [
+        "design-f79878e3",
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "implementation-d6ce4d7c",
+        "impact_analysis-4736b733",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "tests-23585e22",
+      "stage": "tests",
+      "summary": "Exhausted link returns 410",
+      "rationale": "Spec and existing expiry semantics: the link existed but is gone",
+      "inputs": {
+        "spec": "b35cba9201a6e447",
+        "implementation": "dab1f5862a1c14a0"
+      },
+      "parents": [
+        "design-f79878e3",
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "implementation-d6ce4d7c",
+        "impact_analysis-4736b733",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "review-15ca034d",
+      "stage": "review",
+      "summary": "Policy review: pass",
+      "rationale": "8 rules evaluated plus lint",
+      "inputs": {
+        "design": "db029f81b73a9653",
+        "implementation": "dab1f5862a1c14a0",
+        "test_report": "1d0fba93fed3f7b6",
+        "docs": "517615b53c22a737"
+      },
+      "parents": [
+        "docs-4e23de84",
+        "design-f79878e3",
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "implementation-d6ce4d7c",
+        "tests-23585e22",
+        "impact_analysis-4736b733",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "release-0c9efa11",
+      "stage": "release",
+      "summary": "Release candidate prepared",
+      "rationale": "all upstream gates passed",
+      "inputs": {
+        "test_report": "1d0fba93fed3f7b6",
+        "policy_report": "6fb673553380ca9c"
+      },
+      "parents": [
+        "docs-4e23de84",
+        "review-15ca034d",
+        "design-f79878e3",
+        "requirements-fbcbf680",
+        "requirements-7c77cb54",
+        "implementation-d6ce4d7c",
+        "tests-23585e22",
+        "impact_analysis-4736b733",
+        "planning-81a22f66"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "approval-release-2",
+      "stage": "release",
+      "summary": "release approved",
+      "rationale": "Schema change reviewed; upgrade notes present",
+      "inputs": {
+        "release": "00e3aabd86292892"
+      },
+      "parents": [
+        "release-0c9efa11"
+      ],
+      "actor": "human:Vasanth (tech lead)"
+    }
+  ],
+  "approvals": [
+    {
+      "stage": "design",
+      "decision": "approved",
+      "actor": "Vasanth (tech lead)",
+      "comment": "Schema change is additive and nullable; migration approach accepted",
+      "ts": "2026-10-31T07:22:25.019762+00:00",
+      "output_hashes": {
+        "design": "db029f81b73a9653"
+      }
+    },
+    {
+      "stage": "release",
+      "decision": "approved",
+      "actor": "Vasanth (tech lead)",
+      "comment": "Schema change reviewed; upgrade notes present",
+      "ts": "2026-10-31T07:22:30.712210+00:00",
+      "output_hashes": {
+        "release": "00e3aabd86292892"
+      }
+    }
+  ],
+  "llm_calls": {
+    "requirements": 1,
+    "planning": 1,
+    "impact_analysis": 1,
+    "design": 1,
+    "implementation": 1,
+    "docs": 1,
+    "tests": 2
+  },
+  "total_reworks": 0,
+  "message": "release ready: review changes.patch and pr_description.md"
+}

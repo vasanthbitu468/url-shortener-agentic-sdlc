@@ -1,0 +1,410 @@
+diff --git a/docs/changes/click-limits.md b/docs/changes/click-limits.md
+new file mode 100644
+--- /dev/null
++++ b/docs/changes/click-limits.md
+@@ -0,0 +1,29 @@
++# Click-limited links (and an idempotency fix)
++
++## Using it
++
++```bash
++curl -X POST http://localhost:8000/api/v1/urls -H "Content-Type: application/json" \
++  -d '{"url": "https://example.com/offer", "max_clicks": 1}'
++```
++
++After `max_clicks` redirects the link returns `410 Gone` with `link has reached its click limit`.
++Omit `max_clicks` for an unlimited link (the default; existing links are unlimited).
++
++The limit is approximate under concurrent load: clicks are counted just after the redirect, so
++simultaneous requests can exceed it by the number in flight.
++
++## Upgrade notes
++
++Startup adds the nullable `urls.max_clicks` column to existing databases automatically
++(`add_missing_columns`). The migration only adds nullable columns and refuses anything else.
++
++## Bug fix
++
++Replaying an `Idempotency-Key` after its link was deleted used to return `200` with a dead
++short URL. It now returns `410 Gone` so the client knows to create a new link.
++
++## Decision (ADR-003)
++
++Additive startup migration instead of adopting a migration framework now; destructive or
++NOT NULL changes still require a reviewed migration.
+diff --git a/service/api/routes.py b/service/api/routes.py
+--- a/service/api/routes.py
++++ b/service/api/routes.py
+@@ -74,6 +74,7 @@
+         created_at=as_utc(url.created_at),
+         expires_at=as_utc(url.expires_at),
+         is_custom=url.is_custom,
++        max_clicks=url.max_clicks,
+     )
+ 
+ 
+@@ -91,6 +92,7 @@
+     responses={
+         200: {"model": UrlResponse, "description": "Replayed via Idempotency-Key"},
+         409: {"model": ErrorResponse, "description": "Alias taken or idempotency conflict"},
++        410: {"model": ErrorResponse, "description": "Idempotent replay of a deleted link"},
+         422: {"model": ErrorResponse, "description": "Invalid input"},
+         429: {"model": ErrorResponse, "description": "Rate limit exceeded"},
+     },
+@@ -109,6 +111,7 @@
+             custom_alias=body.custom_alias,
+             expires_at=body.expires_at,
+             idempotency_key=idempotency_key,
++            max_clicks=body.max_clicks,
+         )
+     except ValidationError as exc:
+         raise HTTPException(status_code=422, detail=str(exc)) from exc
+@@ -116,6 +119,8 @@
+         raise HTTPException(status_code=409, detail=str(exc)) from exc
+     except CodeSpaceExhaustedError as exc:
+         raise HTTPException(status_code=503, detail=str(exc)) from exc
++    except LinkGoneError as exc:
++        raise HTTPException(status_code=410, detail=str(exc)) from exc
+     if not result.created:
+         response.status_code = 200
+     return to_response(result.url, request.app.state.settings.base_url)
+@@ -220,7 +225,8 @@
+         except LinkGoneError as exc:
+             raise HTTPException(status_code=410, detail=str(exc)) from exc
+         long_url = url.long_url
+-        cache.set(code, (long_url, as_utc(url.expires_at)))
++        if url.max_clicks is None:  # click-limited links must hit the DB to check the count
++            cache.set(code, (long_url, as_utc(url.expires_at)))
+ 
+     background.add_task(
+         _record_click,
+diff --git a/service/api/schemas.py b/service/api/schemas.py
+--- a/service/api/schemas.py
++++ b/service/api/schemas.py
+@@ -17,6 +17,12 @@
+     expires_at: datetime | None = Field(
+         None, description="Optional expiry (ISO 8601; UTC if no offset)"
+     )
++    max_clicks: int | None = Field(
++        None,
++        ge=1,
++        le=1_000_000,
++        description="Optional limit; the link stops working after N clicks",
++    )
+ 
+ 
+ class UrlResponse(BaseModel):
+@@ -26,6 +32,7 @@
+     created_at: datetime
+     expires_at: datetime | None
+     is_custom: bool
++    max_clicks: int | None = None
+ 
+ 
+ class DailyClicks(BaseModel):
+diff --git a/service/core/links.py b/service/core/links.py
+--- a/service/core/links.py
++++ b/service/core/links.py
+@@ -86,6 +86,7 @@
+         custom_alias: str | None = None,
+         expires_at: datetime | None = None,
+         idempotency_key: str | None = None,
++        max_clicks: int | None = None,
+     ) -> CreateResult:
+         long_url = validate_target_url(
+             long_url, max_length=self.max_url_length, own_host=self.own_host
+@@ -96,6 +97,8 @@
+             expires_at = expires_at if expires_at.tzinfo else expires_at.replace(tzinfo=UTC)
+             if expires_at <= _now():
+                 raise ValidationError("expires_at must be in the future")
++        if max_clicks is not None and max_clicks < 1:
++            raise ValidationError("max_clicks must be at least 1")
+ 
+         request_hash = None
+         if idempotency_key:
+@@ -104,6 +107,7 @@
+                     "url": long_url,
+                     "alias": custom_alias,
+                     "expires_at": expires_at.isoformat() if expires_at else None,
++                    "max_clicks": max_clicks,
+                 },
+                 sort_keys=True,
+             )
+@@ -116,9 +120,15 @@
+                     )
+                 url = self._get_by_code(existing.code)
+                 if url is not None:
++                    # Bug fix: replaying a key whose link was deleted used to return 200 with a
++                    # dead short URL. Report it as gone so the client knows to create a new one.
++                    if url.is_deleted:
++                        raise LinkGoneError(
++                            "the link created with this idempotency key was deleted"
++                        )
+                     return CreateResult(url=url, created=False)
+ 
+-        url = self._insert(long_url, custom_alias, expires_at)
++        url = self._insert(long_url, custom_alias, expires_at, max_clicks)
+ 
+         if idempotency_key and request_hash:
+             self.session.add(
+@@ -127,9 +137,21 @@
+             self.session.commit()
+         return CreateResult(url=url, created=True)
+ 
+-    def _insert(self, long_url: str, alias: str | None, expires_at: datetime | None) -> Url:
++    def _insert(
++        self,
++        long_url: str,
++        alias: str | None,
++        expires_at: datetime | None,
++        max_clicks: int | None = None,
++    ) -> Url:
+         if alias is not None:
+-            url = Url(code=alias, long_url=long_url, is_custom=True, expires_at=expires_at)
++            url = Url(
++                code=alias,
++                long_url=long_url,
++                is_custom=True,
++                expires_at=expires_at,
++                max_clicks=max_clicks,
++            )
+             self.session.add(url)
+             try:
+                 self.session.commit()
+@@ -140,7 +162,10 @@
+ 
+         for _ in range(self.code_max_attempts):
+             url = Url(
+-                code=generate_code(self.code_length), long_url=long_url, expires_at=expires_at
++                code=generate_code(self.code_length),
++                long_url=long_url,
++                expires_at=expires_at,
++                max_clicks=max_clicks,
+             )
+             self.session.add(url)
+             try:
+@@ -170,6 +195,8 @@
+         expires_at = as_utc(url.expires_at)
+         if expires_at is not None and expires_at <= _now():
+             raise LinkGoneError("link has expired")
++        if url.max_clicks is not None and url.click_count >= url.max_clicks:
++            raise LinkGoneError("link has reached its click limit")
+ 
+     def stats(self, code: str) -> dict:
+         url = self.get(code, include_inactive=True)
+diff --git a/service/db/models.py b/service/db/models.py
+--- a/service/db/models.py
++++ b/service/db/models.py
+@@ -29,6 +29,7 @@
+     expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+     is_deleted: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+     click_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
++    max_clicks: Mapped[int | None] = mapped_column(Integer, nullable=True)  # None = unlimited
+     last_accessed_at: Mapped[datetime | None] = mapped_column(
+         DateTime(timezone=True), nullable=True
+     )
+diff --git a/service/db/session.py b/service/db/session.py
+--- a/service/db/session.py
++++ b/service/db/session.py
+@@ -1,6 +1,6 @@
+ """Engine and session factory."""
+ 
+-from sqlalchemy import create_engine
++from sqlalchemy import create_engine, inspect, text
+ from sqlalchemy.engine import Engine
+ from sqlalchemy.orm import Session, sessionmaker
+ from sqlalchemy.pool import StaticPool
+@@ -22,5 +22,32 @@
+ 
+ 
+ def init_db(engine: Engine) -> None:
+-    """Create tables. Schema changes after v1 go through migrations, not this call."""
++    """Create missing tables, then apply additive column migrations to existing ones."""
+     Base.metadata.create_all(engine)
++    add_missing_columns(engine)
++
++
++def add_missing_columns(engine: Engine) -> list[str]:
++    """Additive-only migration: add nullable columns that exist in the models but not the DB.
++
++    Databases created by earlier versions keep working without a manual step. Only nullable
++    columns are added (safe, no backfill); anything else must go through a reviewed migration.
++    """
++    added: list[str] = []
++    inspector = inspect(engine)
++    for table in Base.metadata.sorted_tables:
++        if not inspector.has_table(table.name):
++            continue
++        existing = {c["name"] for c in inspector.get_columns(table.name)}
++        for column in table.columns:
++            if column.name in existing:
++                continue
++            if not column.nullable:
++                raise RuntimeError(
++                    f"column {table.name}.{column.name} is NOT NULL; needs a manual migration"
++                )
++            ddl = column.type.compile(dialect=engine.dialect)
++            with engine.begin() as conn:
++                conn.execute(text(f'ALTER TABLE "{table.name}" ADD COLUMN "{column.name}" {ddl}'))
++            added.append(f"{table.name}.{column.name}")
++    return added
+diff --git a/service/openapi.json b/service/openapi.json
+--- a/service/openapi.json
++++ b/service/openapi.json
+@@ -32,6 +32,20 @@
+             "description": "Optional expiry (ISO 8601; UTC if no offset)",
+             "title": "Expires At"
+           },
++          "max_clicks": {
++            "anyOf": [
++              {
++                "maximum": 1000000.0,
++                "minimum": 1.0,
++                "type": "integer"
++              },
++              {
++                "type": "null"
++              }
++            ],
++            "description": "Optional limit; the link stops working after N clicks",
++            "title": "Max Clicks"
++          },
+           "url": {
+             "description": "Target URL (http or https)",
+             "examples": [
+@@ -173,6 +187,17 @@
+           "long_url": {
+             "title": "Long Url",
+             "type": "string"
++          },
++          "max_clicks": {
++            "anyOf": [
++              {
++                "type": "integer"
++              },
++              {
++                "type": "null"
++              }
++            ],
++            "title": "Max Clicks"
+           },
+           "short_url": {
+             "title": "Short Url",
+@@ -302,6 +327,16 @@
+             },
+             "description": "Alias taken or idempotency conflict"
+           },
++          "410": {
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/ErrorResponse"
++                }
++              }
++            },
++            "description": "Idempotent replay of a deleted link"
++          },
+           "422": {
+             "content": {
+               "application/json": {
+diff --git a/tests/integration/test_max_clicks.py b/tests/integration/test_max_clicks.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/test_max_clicks.py
+@@ -0,0 +1,96 @@
++import sqlite3
++
++from fastapi.testclient import TestClient
++
++from service.config import Settings
++from service.db.session import add_missing_columns, build_engine
++from service.main import create_app
++
++URL = "https://example.com/limited"
++
++
++def test_link_stops_working_after_max_clicks(client):
++    r = client.post("/api/v1/urls", json={"url": URL, "max_clicks": 2})
++    assert r.status_code == 201
++    assert r.json()["max_clicks"] == 2
++    code = r.json()["code"]
++    assert client.get(f"/{code}").status_code == 302
++    assert client.get(f"/{code}").status_code == 302
++    third = client.get(f"/{code}")
++    assert third.status_code == 410
++    assert "click limit" in third.json()["detail"]
++    assert client.get(f"/api/v1/urls/{code}/stats").json()["total_clicks"] == 2
++
++
++def test_unlimited_links_are_unchanged(client):
++    r = client.post("/api/v1/urls", json={"url": URL})
++    assert r.json()["max_clicks"] is None
++    code = r.json()["code"]
++    assert all(client.get(f"/{code}").status_code == 302 for _ in range(5))
++
++
++def test_max_clicks_validation(client):
++    assert client.post("/api/v1/urls", json={"url": URL, "max_clicks": 0}).status_code == 422
++    big = {"url": URL, "max_clicks": 1_000_001}
++    assert client.post("/api/v1/urls", json=big).status_code == 422
++
++
++def test_click_limited_links_are_not_served_from_cache(client, app):
++    code = client.post("/api/v1/urls", json={"url": URL, "max_clicks": 5}).json()["code"]
++    client.get(f"/{code}")
++    assert app.state.cache.get(code) is None
++
++
++def test_idempotent_replay_of_deleted_link_returns_410(client):
++    headers = {"Idempotency-Key": "replay-after-delete"}
++    code = client.post("/api/v1/urls", json={"url": URL}, headers=headers).json()["code"]
++    assert client.delete(f"/api/v1/urls/{code}").status_code == 204
++    replay = client.post("/api/v1/urls", json={"url": URL}, headers=headers)
++    assert replay.status_code == 410
++    assert "deleted" in replay.json()["detail"]
++
++
++def test_existing_database_is_migrated_on_startup(tmp_path):
++    db = tmp_path / "old.db"
++    with sqlite3.connect(db) as conn:  # schema as created by v1, without max_clicks
++        conn.execute(
++            "CREATE TABLE urls (id INTEGER PRIMARY KEY, code VARCHAR(32) UNIQUE NOT NULL, "
++            "long_url TEXT NOT NULL, is_custom BOOLEAN NOT NULL, created_at DATETIME, "
++            "expires_at DATETIME, is_deleted BOOLEAN NOT NULL, click_count INTEGER NOT NULL, "
++            "last_accessed_at DATETIME)"
++        )
++        conn.execute(
++            "INSERT INTO urls (code, long_url, is_custom, created_at, is_deleted, click_count) "
++            "VALUES ('legacy1', 'https://example.com/old', 0, '2026-01-01 00:00:00', 0, 7)"
++        )
++    app = create_app(Settings(database_url=f"sqlite:///{db}"))
++    c = TestClient(app, follow_redirects=False)
++    assert c.get("/legacy1").status_code == 302  # old rows keep working
++    assert c.get("/api/v1/urls/legacy1").json()["max_clicks"] is None
++    assert add_missing_columns(app.state.engine) == []  # idempotent
++    app.state.engine.dispose()
++
++
++def test_migration_refuses_not_null_columns(tmp_path):
++    import pytest
++    from sqlalchemy import Column, Integer, MetaData, Table
++
++    from service.db import session as session_module
++
++    engine = build_engine(f"sqlite:///{tmp_path / 'x.db'}")
++    with engine.begin() as conn:
++        conn.exec_driver_sql("CREATE TABLE t (id INTEGER PRIMARY KEY)")
++    md = MetaData()
++    Table("t", md, Column("id", Integer, primary_key=True), Column("n", Integer, nullable=False))
++
++    class FakeBase:
++        metadata = md
++
++    original = session_module.Base
++    session_module.Base = FakeBase
++    try:
++        with pytest.raises(RuntimeError, match="manual migration"):
++            add_missing_columns(engine)
++    finally:
++        session_module.Base = original
++        engine.dispose()

@@ -1,0 +1,24 @@
+# AMBIGUOUS: a vague request that has to be turned into an agreed scope.
+# Control paths shown:
+#  - requirements lists 3 ambiguities with proposed defaults -> human sign-off checkpoint
+#  - the run builds the agreed v1 and pauses for release approval
+#  - the product owner then changes the spec (human_edits/spec_v2.json): existing links must be
+#    blocked too -> the engine detects the stale input and RE-PLANS: planning, impact, design,
+#    implementation, tests, docs and review are reset, the workspace is rolled back, and the
+#    pipeline rebuilds v2
+#  - release approval of the re-planned result
+name: ambiguous-secure-faster
+type: ambiguous
+requirement: |
+  Customers say our short links feel unsafe and slow. Make the links more secure and faster.
+demo_steps:
+  - approve: requirements
+    by: "Vasanth (tech lead)"
+    comment: "Defaults accepted: abuse denylist now, performance after measurement"
+  - edit: spec
+    file: human_edits/spec_v2.json
+    by: "Priya (product owner)"
+    comment: "Reported phishing links already exist; blocking must disable existing links too"
+  - approve: release
+    by: "Vasanth (tech lead)"
+    comment: "v2 reviewed: create and redirect enforcement, reversible via config"

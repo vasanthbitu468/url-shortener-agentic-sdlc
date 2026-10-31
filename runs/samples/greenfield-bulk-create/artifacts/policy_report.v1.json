@@ -1,0 +1,12 @@
+{
+  "findings": [],
+  "lint_errors": "",
+  "changed_files": {
+    "docs/changes/bulk-create.md": "added",
+    "service/api/bulk.py": "added",
+    "service/main.py": "modified",
+    "service/openapi.json": "modified",
+    "tests/integration/test_bulk.py": "added"
+  },
+  "diff_lines": 278
+}

@@ -1,0 +1,37 @@
+{
+  "spec": {
+    "title": "Bulk link creation API",
+    "description": "New capability: shorten up to 100 URLs in one request for marketing campaign imports. Items are processed independently with per-item results.",
+    "acceptance_criteria": [
+      "POST /api/v1/urls/bulk accepts {items: [CreateUrlRequest]} with 1-100 items",
+      "Each item is validated and created independently; one invalid item does not fail the batch",
+      "Response lists every item in request order with ok, link or error",
+      "Response includes created and failed counts",
+      "Every item counts against the caller's rate limit; items over the limit fail with 'rate limit exceeded'",
+      "Empty or oversized batches, and unknown fields, are rejected with 422"
+    ],
+    "ambiguities": [],
+    "assumptions": [
+      "Per-item Idempotency-Key is out of scope for v1 of the bulk API",
+      "Same validation and SSRF rules as the single-create endpoint"
+    ],
+    "non_functional": [
+      "A 100-item batch completes in under 1 second on SQLite",
+      "No change to existing endpoints or the database schema"
+    ],
+    "out_of_scope": [
+      "CSV upload",
+      "Asynchronous batch jobs"
+    ]
+  },
+  "decisions": [
+    {
+      "summary": "Partial success per item",
+      "rationale": "Campaign imports always contain a few bad URLs"
+    },
+    {
+      "summary": "Rate limit per item, not per request",
+      "rationale": "Otherwise bulk bypasses abuse protection"
+    }
+  ]
+}
