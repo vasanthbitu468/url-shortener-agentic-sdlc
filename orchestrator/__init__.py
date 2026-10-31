@@ -9,4 +9,4 @@ Agents never touch the real repository: they work in a per-run sandbox copy, and
 is a patch that a human reviews and applies.
 """
 
-__version__ = "0.2.0"
+__version__ = "1.0.0"
