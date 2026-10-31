@@ -26,3 +26,6 @@ runs/*
 .idea/
 .DS_Store
 Thumbs.db
+
+# CI scratch runs
+ci-runs/

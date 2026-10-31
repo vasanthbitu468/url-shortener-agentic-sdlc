@@ -50,25 +50,31 @@ jobs:
       - name: Install
         run: pip install -e ".[dev]"
 
-      - name: Run demo scenario end to end (mock LLM, CI auto-approval)
-        run: |
-          sdlc run scenarios/demo-version-endpoint --auto-approve --run-id ci-demo
-          sdlc verify ci-demo
-          sdlc metrics ci-demo
-          git apply --check runs/ci-demo/changes.patch
+      - name: Run all scenarios with their scripted human steps (mock LLM)
+        run: python scripts/run_scenario.py --all --runs-dir ci-runs --record
 
-      - name: Upload run artifacts (audit log, patch, summary)
+      - name: Every scenario's patch applies and passes the suite on a clean checkout
+        run: |
+          for d in ci-runs/samples/*/; do
+            name=$(basename "$d")
+            git apply "$d/changes.patch"
+            pytest tests -q -o addopts= -p no:cacheprovider
+            git checkout -q -- . && git clean -fdq
+            echo "$name OK"
+          done
+
+      - name: CLI smoke test (auto-approve)
+        run: |
+          sdlc --runs-dir ci-runs run scenarios/demo-version-endpoint --auto-approve --run-id ci-demo
+          sdlc --runs-dir ci-runs verify ci-demo
+          sdlc --runs-dir ci-runs metrics
+
+      - name: Upload run artifacts (audit logs, patches, summaries)
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: orchestrator-run
-          path: |
-            runs/ci-demo/events.jsonl
-            runs/ci-demo/state.json
-            runs/ci-demo/artifacts/
-            runs/ci-demo/changes.patch
-            runs/ci-demo/summary.md
-            runs/ci-demo/pr_description.md
+          name: orchestrator-runs
+          path: ci-runs/samples/
 
   docker:
     runs-on: ubuntu-latest

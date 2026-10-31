@@ -1,0 +1,10 @@
+{
+  "changed_files": [
+    "service/api/bulk.py",
+    "service/main.py",
+    "service/openapi.json"
+  ],
+  "compile_errors": [],
+  "openapi_error": "",
+  "summary": "Added bulk router and registered it; tests left to the test agent as required"
+}

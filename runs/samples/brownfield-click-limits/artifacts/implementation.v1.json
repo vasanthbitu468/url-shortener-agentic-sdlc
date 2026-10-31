@@ -1,0 +1,13 @@
+{
+  "changed_files": [
+    "service/api/routes.py",
+    "service/api/schemas.py",
+    "service/core/links.py",
+    "service/db/models.py",
+    "service/db/session.py",
+    "service/openapi.json"
+  ],
+  "compile_errors": [],
+  "openapi_error": "",
+  "summary": "max_clicks column, migration, enforcement, cache bypass, replay bug fix"
+}

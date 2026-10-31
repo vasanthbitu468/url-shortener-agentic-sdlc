@@ -1,0 +1,16 @@
+{
+  "edits": [
+    {
+      "path": "docs/changes/denylist.md",
+      "action": "create",
+      "content": "# Destination denylist\n\nOperators can stop the shortener from fronting phishing or malware sites.\n\n```bash\nAPP_BLOCKED_DOMAINS=\"phish.example,malware.test\"\n```\n\n- A domain blocks itself and all subdomains (`login.phish.example`), case-insensitively.\n  Lookalikes such as `phish.example.org` are not blocked.\n- Creating a link to a blocked destination returns `422 destination domain is blocked`.\n- Existing links to a blocked destination stop redirecting and return\n  `410 destination has been blocked`, including links already in the redirect cache.\n  Removing the domain from the list restores them; nothing is deleted.\n\n## How this scope was decided\n\nThe request was \"make the links more secure and faster\". The requirements stage listed three\nambiguities with proposed defaults, which were signed off. Performance work is deferred until\nmeasured: hot redirects are already served from the in-process cache.\n\nThe product owner later clarified that existing links must be blocked too; the pipeline re-planned from that change.\n"
+    }
+  ],
+  "summary": "Operator docs incl. redirect enforcement",
+  "decisions": [
+    {
+      "summary": "Record the late scope change",
+      "rationale": "Audit trail for why behaviour differs from the first plan"
+    }
+  ]
+}

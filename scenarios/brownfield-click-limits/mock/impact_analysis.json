@@ -1,0 +1,66 @@
+{
+  "impact": {
+    "modules": [
+      {
+        "path": "service/db/models.py",
+        "change": "add nullable urls.max_clicks",
+        "new": false
+      },
+      {
+        "path": "service/db/session.py",
+        "change": "additive migration on startup",
+        "new": false
+      },
+      {
+        "path": "service/core/links.py",
+        "change": "store and enforce max_clicks; 410 on replay of deleted link",
+        "new": false
+      },
+      {
+        "path": "service/api/schemas.py",
+        "change": "max_clicks request/response field",
+        "new": false
+      },
+      {
+        "path": "service/api/routes.py",
+        "change": "pass max_clicks; skip cache for limited links; map LinkGoneError on create",
+        "new": false
+      },
+      {
+        "path": "service/openapi.json",
+        "change": "contract: new field, new 410 on create",
+        "new": false
+      }
+    ],
+    "apis": [
+      {
+        "endpoint": "POST /api/v1/urls",
+        "change": "changed"
+      },
+      {
+        "endpoint": "GET /{code}",
+        "change": "changed"
+      }
+    ],
+    "data_flows": [
+      "create: request.max_clicks -> LinkService.create -> urls.max_clicks",
+      "redirect: cache (unlimited links only) or DB -> ensure_active checks click_count vs max_clicks -> 302 or 410; background task increments click_count"
+    ],
+    "tests_affected": [
+      "tests/integration/test_api.py",
+      "tests/integration/test_contract.py"
+    ],
+    "risk_level": "medium",
+    "risks": [
+      "Schema change on a live table",
+      "Cache bypass",
+      "Idempotency semantics change"
+    ]
+  },
+  "decisions": [
+    {
+      "summary": "Migration is required",
+      "rationale": "create_all does not alter existing tables"
+    }
+  ]
+}

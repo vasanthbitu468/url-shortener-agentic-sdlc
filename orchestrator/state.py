@@ -103,7 +103,9 @@ class RunStore:
     def save(self, state: RunState) -> None:
         self.dir.mkdir(parents=True, exist_ok=True)
         tmp = self.state_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(state.to_json(), indent=2, default=str), encoding="utf-8")
+        tmp.write_text(
+            json.dumps(state.to_json(), indent=2, default=str), encoding="utf-8", newline="\n"
+        )
         os.replace(tmp, self.state_path)  # atomic: a crash never leaves half-written state
 
     def load(self) -> RunState:
@@ -119,7 +121,7 @@ class RunStore:
         version = (current["version"] + 1) if current else 1
         self.artifacts_dir.mkdir(parents=True, exist_ok=True)
         path = self.artifacts_dir / f"{name}.v{version}.json"
-        path.write_text(json.dumps(value, indent=2, default=str), encoding="utf-8")
+        path.write_text(json.dumps(value, indent=2, default=str), encoding="utf-8", newline="\n")
         state.artifacts[name] = {
             "hash": digest,
             "version": version,
@@ -145,7 +147,7 @@ class RunStore:
 
     def request_stop(self, reason: str = "") -> None:
         self.dir.mkdir(parents=True, exist_ok=True)
-        self.stop_path.write_text(reason or "stop requested", encoding="utf-8")
+        self.stop_path.write_text(reason or "stop requested", encoding="utf-8", newline="\n")
 
     def stop_requested(self) -> bool:
         return self.stop_path.exists()

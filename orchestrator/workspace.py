@@ -55,6 +55,11 @@ class CommandResult:
         return self.returncode == 0
 
 
+def _normalised(path: Path) -> bytes:
+    """File bytes with CRLF folded to LF: a line-ending-only difference is not a change."""
+    return path.read_bytes().replace(b"\r\n", b"\n")
+
+
 def _safe_relpath(path: str) -> PurePosixPath:
     p = PurePosixPath(path.replace("\\", "/"))
     if p.is_absolute() or ".." in p.parts or not p.parts:
@@ -209,7 +214,7 @@ class Workspace:
                 changes[p] = "added"
             elif p not in after:
                 changes[p] = "deleted"
-            elif before[p].read_bytes() != after[p].read_bytes():
+            elif _normalised(before[p]) != _normalised(after[p]):
                 changes[p] = "modified"
         return changes
 

@@ -1,0 +1,46 @@
+{
+  "design": {
+    "summary": "Add nullable urls.max_clicks. LinkService enforces it in ensure_active (click_count >= max_clicks -> 410). Redirect cache stores only unlimited links. init_db gains an additive migration that adds missing nullable columns. Idempotent replay of a deleted link raises LinkGoneError -> 410.",
+    "components": [
+      {
+        "name": "Url.max_clicks",
+        "responsibility": "Optional per-link limit"
+      },
+      {
+        "name": "add_missing_columns",
+        "responsibility": "Idempotent additive migration"
+      },
+      {
+        "name": "LinkService.ensure_active",
+        "responsibility": "Single place for link liveness"
+      }
+    ],
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/v1/urls",
+        "response": "201 (+max_clicks); 410 on replay of deleted link"
+      },
+      {
+        "method": "GET",
+        "path": "/{code}",
+        "response": "302, or 410 when the limit is reached"
+      }
+    ],
+    "api_changes": true,
+    "data_model_changes": true,
+    "adr": {
+      "title": "ADR-003: Additive startup migration instead of a migration framework",
+      "context": "The service creates tables at startup and has no migration tool yet; v1 databases must keep working after upgrade.",
+      "decision": "Add only nullable columns automatically and refuse anything else with an error that demands a reviewed migration.",
+      "consequences": "Safe, zero-downtime upgrade for additive changes. Destructive or NOT NULL changes still need Alembic (planned)."
+    },
+    "test_strategy": "Integration tests for limit enforcement, cache bypass, validation, the replay bug, and migration of a hand-built v1 database; existing suite as regression."
+  },
+  "decisions": [
+    {
+      "summary": "Enforce in ensure_active",
+      "rationale": "Keeps metadata, redirect and cache paths consistent"
+    }
+  ]
+}

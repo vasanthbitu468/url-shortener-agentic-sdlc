@@ -1,0 +1,70 @@
+{
+  "modules": [
+    {
+      "path": "service/config.py",
+      "change": "blocked_domains setting",
+      "new": false
+    },
+    {
+      "path": "service/core/validation.py",
+      "change": "domain matching helpers; check on create",
+      "new": false
+    },
+    {
+      "path": "service/core/links.py",
+      "change": "pass denylist to validation",
+      "new": false
+    },
+    {
+      "path": "service/api/routes.py",
+      "change": "wire setting into LinkService; check on every redirect",
+      "new": false
+    }
+  ],
+  "apis": [
+    {
+      "endpoint": "POST /api/v1/urls",
+      "change": "changed"
+    },
+    {
+      "endpoint": "GET /{code}",
+      "change": "changed"
+    }
+  ],
+  "data_flows": [
+    "config -> Settings.blocked_domain_set -> LinkService -> validation",
+    "redirect: cache or DB -> denylist check -> 302 or 410"
+  ],
+  "tests_affected": [
+    "tests/integration/test_api.py"
+  ],
+  "risk_level": "medium",
+  "risks": [
+    "Behaviour change for existing links"
+  ],
+  "_known_files": [
+    "service/__init__.py",
+    "service/api/__init__.py",
+    "service/api/routes.py",
+    "service/api/schemas.py",
+    "service/config.py",
+    "service/core/__init__.py",
+    "service/core/cache.py",
+    "service/core/codegen.py",
+    "service/core/links.py",
+    "service/core/ratelimit.py",
+    "service/core/validation.py",
+    "service/db/__init__.py",
+    "service/db/models.py",
+    "service/db/session.py",
+    "service/main.py",
+    "service/openapi.json",
+    "tests/__init__.py",
+    "tests/conftest.py",
+    "tests/integration/__init__.py",
+    "tests/integration/test_api.py",
+    "tests/integration/test_contract.py",
+    "tests/unit/__init__.py",
+    "tests/unit/test_core.py"
+  ]
+}

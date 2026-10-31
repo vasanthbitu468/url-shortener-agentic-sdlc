@@ -1,0 +1,123 @@
+diff --git a/docs/changes/version-endpoint.md b/docs/changes/version-endpoint.md
+new file mode 100644
+--- /dev/null
++++ b/docs/changes/version-endpoint.md
+@@ -0,0 +1,13 @@
++# Version endpoint
++
++`GET /api/v1/version` returns the version of the running service.
++
++```bash
++curl http://localhost:8000/api/v1/version
++# {"version": "1.0.0"}
++```
++
++## Decision (ADR-001)
++
++The version is read from the FastAPI application object, so a release only bumps it in one place.
++No authentication is required: the version is not sensitive.
+diff --git a/service/api/version.py b/service/api/version.py
+new file mode 100644
+--- /dev/null
++++ b/service/api/version.py
+@@ -0,0 +1,16 @@
++"""Service metadata endpoints."""
++
++from fastapi import APIRouter, Request
++from pydantic import BaseModel
++
++router = APIRouter(prefix="/api/v1", tags=["meta"])
++
++
++class VersionResponse(BaseModel):
++    version: str
++
++
++@router.get("/version", response_model=VersionResponse)
++def version(request: Request) -> VersionResponse:
++    """Return the version of the running service."""
++    return VersionResponse(version=request.app.version)
+diff --git a/service/main.py b/service/main.py
+--- a/service/main.py
++++ b/service/main.py
+@@ -11,6 +11,7 @@
+ from fastapi import FastAPI, Request
+ 
+ from service.api.routes import api, ops, redirect
++from service.api.version import router as version_router
+ from service.config import Settings, get_settings
+ from service.core.cache import TTLCache
+ from service.core.ratelimit import RateLimiter
+@@ -78,6 +79,7 @@
+ 
+     app.include_router(ops)
+     app.include_router(api)
++    app.include_router(version_router)
+     app.include_router(redirect)  # last: catch-all /{code}
+     return app
+ 
+diff --git a/service/openapi.json b/service/openapi.json
+--- a/service/openapi.json
++++ b/service/openapi.json
+@@ -228,6 +228,19 @@
+           "type"
+         ],
+         "title": "ValidationError",
++        "type": "object"
++      },
++      "VersionResponse": {
++        "properties": {
++          "version": {
++            "title": "Version",
++            "type": "string"
++          }
++        },
++        "required": [
++          "version"
++        ],
++        "title": "VersionResponse",
+         "type": "object"
+       }
+     }
+@@ -496,6 +509,28 @@
+         ]
+       }
+     },
++    "/api/v1/version": {
++      "get": {
++        "description": "Return the version of the running service.",
++        "operationId": "version_api_v1_version_get",
++        "responses": {
++          "200": {
++            "content": {
++              "application/json": {
++                "schema": {
++                  "$ref": "#/components/schemas/VersionResponse"
++                }
++              }
++            },
++            "description": "Successful Response"
++          }
++        },
++        "summary": "Version",
++        "tags": [
++          "meta"
++        ]
++      }
++    },
+     "/health": {
+       "get": {
+         "operationId": "health_health_get",
+diff --git a/tests/integration/test_version.py b/tests/integration/test_version.py
+new file mode 100644
+--- /dev/null
++++ b/tests/integration/test_version.py
+@@ -0,0 +1,8 @@
++def test_version_endpoint_returns_app_version(client, app):
++    r = client.get("/api/v1/version")
++    assert r.status_code == 200
++    assert r.json() == {"version": app.version}
++
++
++def test_version_path_is_not_treated_as_short_code(client):
++    assert client.get("/api/v1/version").headers["content-type"].startswith("application/json")

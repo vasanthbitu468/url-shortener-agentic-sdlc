@@ -11,3 +11,10 @@ requirement: |
   Ops keep asking which build is deployed. Add an endpoint that tells us the service version.
 faults:
   docs: 1
+demo_steps:
+  - approve: design
+    by: "Vasanth (tech lead)"
+    comment: "API addition is fine"
+  - approve: release
+    by: "Vasanth (tech lead)"
+    comment: "Ship it"

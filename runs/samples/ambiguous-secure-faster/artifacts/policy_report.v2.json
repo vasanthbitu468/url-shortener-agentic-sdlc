@@ -1,0 +1,15 @@
+{
+  "findings": [],
+  "lint_errors": "",
+  "changed_files": {
+    "docs/changes/denylist.md": "added",
+    "service/api/routes.py": "modified",
+    "service/config.py": "modified",
+    "service/core/links.py": "modified",
+    "service/core/validation.py": "modified",
+    "tests/integration/test_denylist_create.py": "added",
+    "tests/integration/test_denylist_redirect.py": "added",
+    "tests/unit/test_denylist.py": "added"
+  },
+  "diff_lines": 145
+}

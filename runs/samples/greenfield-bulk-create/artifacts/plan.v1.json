@@ -1,0 +1,61 @@
+{
+  "tasks": [
+    {
+      "id": "G1",
+      "title": "Design bulk request/response contract",
+      "stage": "design",
+      "depends_on": [],
+      "estimate_hours": 1
+    },
+    {
+      "id": "G2",
+      "title": "Implement bulk router reusing LinkService",
+      "stage": "implementation",
+      "depends_on": [
+        "G1"
+      ],
+      "estimate_hours": 2
+    },
+    {
+      "id": "G3",
+      "title": "Tests: success, partial failure, limits, rate limiting",
+      "stage": "tests",
+      "depends_on": [
+        "G2"
+      ],
+      "estimate_hours": 1.5
+    },
+    {
+      "id": "G4",
+      "title": "API documentation with example",
+      "stage": "docs",
+      "depends_on": [
+        "G2"
+      ],
+      "estimate_hours": 0.5
+    },
+    {
+      "id": "G5",
+      "title": "Policy review and release",
+      "stage": "review",
+      "depends_on": [
+        "G3",
+        "G4"
+      ],
+      "estimate_hours": 0.5
+    }
+  ],
+  "risks": [
+    {
+      "risk": "Bulk endpoint multiplies abuse capacity (100 links per request)",
+      "mitigation": "Every item consumes one rate-limit token; overflow items fail explicitly"
+    },
+    {
+      "risk": "Partial failures are easy for clients to miss",
+      "mitigation": "Return created/failed counts and per-item errors in request order"
+    }
+  ],
+  "skip_stages": [
+    "impact_analysis"
+  ]
+}

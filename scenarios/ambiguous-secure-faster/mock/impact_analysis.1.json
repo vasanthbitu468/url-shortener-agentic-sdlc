@@ -1,0 +1,48 @@
+{
+  "impact": {
+    "modules": [
+      {
+        "path": "service/config.py",
+        "change": "blocked_domains setting",
+        "new": false
+      },
+      {
+        "path": "service/core/validation.py",
+        "change": "domain matching helpers; check on create",
+        "new": false
+      },
+      {
+        "path": "service/core/links.py",
+        "change": "pass denylist to validation",
+        "new": false
+      },
+      {
+        "path": "service/api/routes.py",
+        "change": "wire setting into LinkService",
+        "new": false
+      }
+    ],
+    "apis": [
+      {
+        "endpoint": "POST /api/v1/urls",
+        "change": "changed"
+      }
+    ],
+    "data_flows": [
+      "config -> Settings.blocked_domain_set -> LinkService -> validation"
+    ],
+    "tests_affected": [
+      "tests/integration/test_api.py"
+    ],
+    "risk_level": "low",
+    "risks": [
+      "Create-only; no change for existing links"
+    ]
+  },
+  "decisions": [
+    {
+      "summary": "No schema change",
+      "rationale": "Denylist lives in configuration"
+    }
+  ]
+}

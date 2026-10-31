@@ -1,0 +1,12 @@
+{
+  "patch_file": "changes.patch",
+  "patch_lines": 327,
+  "files": [
+    "docs/changes/bulk-create.md",
+    "service/api/bulk.py",
+    "service/main.py",
+    "service/openapi.json",
+    "tests/integration/test_bulk.py"
+  ],
+  "needs_approval": []
+}

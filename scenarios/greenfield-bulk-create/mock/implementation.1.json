@@ -1,0 +1,34 @@
+{
+  "edits": [
+    {
+      "path": "service/api/bulk.py",
+      "action": "create",
+      "content": "\"\"\"Bulk link creation: shorten up to 100 URLs in one request.\n\nEach item is validated and created independently, so one bad URL does not fail the batch.\nEvery item counts against the caller's rate limit; items over the limit are reported as\nfailed rather than silently dropped.\n\"\"\"\n\nfrom fastapi import APIRouter, Depends, Request\nfrom pydantic import BaseModel, ConfigDict, Field\n\nfrom service.api.routes import get_link_service, to_response\nfrom service.api.schemas import CreateUrlRequest, ErrorResponse, UrlResponse\nfrom service.core.links import AliasTakenError, CodeSpaceExhaustedError, LinkService\nfrom service.core.validation import ValidationError\n\nMAX_BATCH = 100\n\nrouter = APIRouter(prefix=\"/api/v1\", tags=[\"urls\"])\n\n\nclass BulkCreateRequest(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\")\n\n    items: list[CreateUrlRequest] = Field(..., min_length=1, max_length=MAX_BATCH)\n\n\nclass BulkItemResult(BaseModel):\n    index: int\n    ok: bool\n    link: UrlResponse | None = None\n    error: str | None = None\n\n\nclass BulkCreateResponse(BaseModel):\n    created: int\n    failed: int\n    results: list[BulkItemResult]\n\n\n@router.post(\n    \"/urls/bulk\",\n    response_model=BulkCreateResponse,\n    responses={422: {\"model\": ErrorResponse, \"description\": \"Invalid batch\"}},\n)\ndef bulk_create(\n    body: BulkCreateRequest,\n    request: Request,\n    service: LinkService = Depends(get_link_service),\n) -> BulkCreateResponse:\n    limiter = request.app.state.rate_limiter\n    client = request.client.host if request.client else \"unknown\"\n    base_url = request.app.state.settings.base_url\n\n    results: list[BulkItemResult] = []\n    for index, item in enumerate(body.items):\n        if not limiter.allow(client):\n            results.append(BulkItemResult(index=index, ok=False, error=\"rate limit exceeded\"))\n            continue\n        try:\n            created = service.create(\n                item.url, custom_alias=item.custom_alias, expires_at=item.expires_at\n            )\n        except (ValidationError, AliasTakenError, CodeSpaceExhaustedError) as exc:\n            results.append(BulkItemResult(index=index, ok=False, error=str(exc)))\n        else:\n            results.append(\n                BulkItemResult(index=index, ok=True, link=to_response(created.url, base_url))\n            )\n\n    ok = sum(r.ok for r in results)\n    return BulkCreateResponse(created=ok, failed=len(results) - ok, results=results)\n"
+    },
+    {
+      "path": "service/main.py",
+      "action": "replace",
+      "find": "from service.api.routes import api, ops, redirect\n",
+      "replace": "from service.api.bulk import router as bulk_router\nfrom service.api.routes import api, ops, redirect\n"
+    },
+    {
+      "path": "service/main.py",
+      "action": "replace",
+      "find": "    app.include_router(api)\n",
+      "replace": "    app.include_router(api)\n    app.include_router(bulk_router)\n"
+    },
+    {
+      "path": "tests/integration/test_bulk.py",
+      "action": "create",
+      "content": "from fastapi.testclient import TestClient\n\nfrom service.config import Settings\nfrom service.main import create_app\n\nURL = \"https://example.com/page\"\n\n\ndef bulk(client, items):\n    return client.post(\"/api/v1/urls/bulk\", json={\"items\": items})\n\n\ndef test_bulk_creates_every_valid_item(client):\n    r = bulk(client, [{\"url\": f\"{URL}/{i}\"} for i in range(3)])\n    assert r.status_code == 200\n    data = r.json()\n    assert data[\"created\"] == 3 and data[\"failed\"] == 0\n    codes = [item[\"link\"][\"code\"] for item in data[\"results\"]]\n    assert len(set(codes)) == 3\n    assert client.get(f\"/{codes[0]}\").headers[\"location\"] == f\"{URL}/0\"\n\n\ndef test_bulk_reports_per_item_failures_without_failing_the_batch(client):\n    r = bulk(\n        client,\n        [\n            {\"url\": URL, \"custom_alias\": \"dup-alias\"},\n            {\"url\": \"http://127.0.0.1/admin\"},\n            {\"url\": URL, \"custom_alias\": \"dup-alias\"},\n            {\"url\": URL},\n        ],\n    )\n    data = r.json()\n    assert r.status_code == 200\n    assert [x[\"ok\"] for x in data[\"results\"]] == [True, False, False, True]\n    assert \"private\" in data[\"results\"][1][\"error\"]\n    assert \"already in use\" in data[\"results\"][2][\"error\"]\n    assert data[\"created\"] == 2 and data[\"failed\"] == 2\n\n\ndef test_bulk_rejects_empty_and_oversized_batches(client):\n    assert bulk(client, []).status_code == 422\n    assert bulk(client, [{\"url\": URL}] * 101).status_code == 422\n    assert client.post(\"/api/v1/urls/bulk\", json={\"items\": [], \"x\": 1}).status_code == 422\n\n\ndef test_bulk_items_count_against_rate_limit():\n    app = create_app(Settings(database_url=\"sqlite://\", rate_limit_requests=2))\n    c = TestClient(app)\n    data = bulk(c, [{\"url\": f\"{URL}/{i}\"} for i in range(3)]).json()\n    assert [x[\"ok\"] for x in data[\"results\"]] == [True, True, False]\n    assert data[\"results\"][2][\"error\"] == \"rate limit exceeded\"\n    app.state.engine.dispose()\n"
+    }
+  ],
+  "regenerate_openapi": true,
+  "summary": "Added bulk router, registered it, and added tests",
+  "decisions": [
+    {
+      "summary": "Ship code and tests together",
+      "rationale": "Faster to review in one change"
+    }
+  ]
+}

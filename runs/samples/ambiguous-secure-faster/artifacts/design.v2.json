@@ -1,0 +1,38 @@
+{
+  "summary": "Settings.blocked_domains (comma-separated) parsed into a frozenset; validate_target_url rejects blocked hosts and subdomains at creation; the redirect route re-checks the destination on every request, after the cache lookup, returning 410.",
+  "components": [
+    {
+      "name": "Settings.blocked_domain_set",
+      "responsibility": "Normalised denylist"
+    },
+    {
+      "name": "validation.is_blocked_host",
+      "responsibility": "Exact or subdomain match"
+    },
+    {
+      "name": "routes.follow",
+      "responsibility": "Redirect-time enforcement"
+    }
+  ],
+  "endpoints": [
+    {
+      "method": "POST",
+      "path": "/api/v1/urls",
+      "response": "422 'destination domain is blocked'"
+    },
+    {
+      "method": "GET",
+      "path": "/{code}",
+      "response": "410 'destination has been blocked'"
+    }
+  ],
+  "api_changes": false,
+  "data_model_changes": false,
+  "adr": {
+    "title": "ADR-004: Config-based denylist, enforced at create and redirect",
+    "context": "Customers reported phishing links behind our domain. The request ('more secure and faster') was ambiguous; scope was agreed via signed-off defaults and a later product-owner clarification.",
+    "decision": "Operator-managed domain denylist with subdomain matching; checked on every redirect so existing links are disabled immediately",
+    "consequences": "No schema change; status codes already in the contract. A bad denylist entry disables links until removed (reversible)."
+  },
+  "test_strategy": "Unit tests for parsing and matching; integration tests for create and for redirects of pre-existing and cached links"
+}

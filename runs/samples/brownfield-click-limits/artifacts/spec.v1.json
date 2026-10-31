@@ -1,0 +1,24 @@
+{
+  "title": "Click-limited links, plus fix for idempotent replay of deleted links",
+  "description": "Enhancement: allow a link to stop working after N clicks (one-time or limited-use links). Bug fix: replaying an Idempotency-Key after its link was deleted returns 200 with a dead short URL.",
+  "acceptance_criteria": [
+    "POST /api/v1/urls accepts optional max_clicks (1..1,000,000); responses include max_clicks",
+    "After max_clicks redirects, the link returns 410 with 'link has reached its click limit'",
+    "Links without max_clicks behave exactly as before",
+    "Click-limited links are never served from the redirect cache",
+    "Databases created by v1 are migrated automatically on startup; existing links keep working",
+    "Bug: replaying an Idempotency-Key whose link was deleted returns 410, not 200"
+  ],
+  "ambiguities": [],
+  "assumptions": [
+    "The limit is approximate under concurrent clicks: clicks are counted after the redirect, so simultaneous requests can exceed the limit by the number of in-flight requests",
+    "No backfill: existing links get max_clicks = NULL (unlimited)"
+  ],
+  "non_functional": [
+    "No new dependencies",
+    "Redirect latency for unlimited links unchanged"
+  ],
+  "out_of_scope": [
+    "Strict exactly-N enforcement (needs a transactional counter)"
+  ]
+}

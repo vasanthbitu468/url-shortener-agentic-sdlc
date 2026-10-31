@@ -5,8 +5,27 @@ evolves the service through a governed SDLC pipeline: dependency graph, entry/ex
 parallel stages, human approvals, bounded retries, fallback, rollback, safe-stop, re-planning,
 policy guardrails and a hash-chained audit log.
 
-**Status:** Phase 1 (service) and Phase 2 (orchestrator) complete. Next: the greenfield,
-brownfield and ambiguous scenarios, then the architecture and engineering-summary docs.
+**Status:** service, orchestrator and the three assessment scenarios complete. Next: the
+architecture overview and engineering-summary docs, then the v1.0.0 release.
+
+## Scenarios
+
+Each scenario is a requirement plus scripted agent responses (mock LLM) and scripted human
+steps, so it runs identically everywhere. Recorded results are in [runs/samples](runs/samples/).
+
+| Scenario | Requirement | What it demonstrates |
+| --- | --- | --- |
+| [greenfield-bulk-create](scenarios/greenfield-bulk-create/scenario.yaml) | Shorten up to 100 URLs per request | Planning skips impact analysis; autonomy boundary refuses an out-of-scope edit (rollback, retry); API approval |
+| [brownfield-click-limits](scenarios/brownfield-click-limits/scenario.yaml) | Limited-use links + fix a real idempotency bug | Impact analysis; schema change with additive migration; failing tests retried with pytest output as feedback; schema flagged for approval |
+| [ambiguous-secure-faster](scenarios/ambiguous-secure-faster/scenario.yaml) | "Make the links more secure and faster" | Ambiguities with defaults and sign-off; late spec change by the product owner triggers re-plan, rollback and rebuild |
+| [demo-version-endpoint](scenarios/demo-version-endpoint/scenario.yaml) | Version endpoint | Injected failure + retry; leaked key blocked by policy; rework loop |
+
+```cmd
+python scripts/run_scenario.py scenarios/ambiguous-secure-faster
+python scripts/run_scenario.py --all
+```
+
+Or drive a scenario by hand with the CLI below and make the approvals yourself.
 
 ## Quick start (Windows, Command Prompt)
 
@@ -118,8 +137,9 @@ tests/
   integration/  every endpoint, idempotency, expiry, caching, rate limit, contract
 orchestrator/   engine, graph, gates, policies, workspace, agents/, cli
 tests_orchestrator/  engine control paths, policies, gates, CLI, audit tampering
-scenarios/      scenario.yaml + scripted mock LLM responses
-scripts/export_openapi.py
+scenarios/      scenario.yaml + scripted mock LLM responses (+ human_edits/)
+runs/samples/   recorded runs: summary, PR text, patch, audit log, artifacts
+scripts/        export_openapi.py, run_scenario.py
 ```
 
 ## Configuration
@@ -131,8 +151,8 @@ All settings are environment variables prefixed `APP_` (or a `.env` file). See `
 `pytest --cov` runs the service tests (in-memory SQLite) and the orchestrator tests (full runs
 through every control path: retry, fallback, rework, rollback, approvals, rejection, safe-stop,
 re-plan, autonomy violations, audit tampering). Takes about a minute.
-CI enforces lint (`ruff`), an 85% coverage gate, a Docker build + smoke test, and an end-to-end
-orchestrator run whose patch must apply cleanly.
+CI enforces lint (`ruff`), an 85% coverage gate, a Docker build + smoke test, and runs all
+scenarios end to end; each scenario's patch must apply to a clean checkout and pass the suite.
 
 ## Known limitations (Phase 1)
 
@@ -150,5 +170,5 @@ same run at once; mock mode replays scripted responses and does not judge prompt
 
 1. ~~Core service~~
 2. ~~Agentic orchestration engine with governance, audit and metrics~~
-3. Scenarios: greenfield, brownfield, ambiguous
+3. ~~Scenarios: greenfield, brownfield, ambiguous~~
 4. Docs (architecture, scenarios, testing, engineering summary) and release

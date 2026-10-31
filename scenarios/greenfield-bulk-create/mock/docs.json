@@ -1,0 +1,16 @@
+{
+  "edits": [
+    {
+      "path": "docs/changes/bulk-create.md",
+      "action": "create",
+      "content": "# Bulk link creation\n\n`POST /api/v1/urls/bulk` shortens up to 100 URLs in one request.\n\n```bash\ncurl -X POST http://localhost:8000/api/v1/urls/bulk -H \"Content-Type: application/json\" \\\n  -d '{\"items\": [{\"url\": \"https://example.com/a\"}, {\"url\": \"https://example.com/b\", \"custom_alias\": \"spring-b\"}]}'\n```\n\nResponse (200):\n\n```json\n{\"created\": 2, \"failed\": 0, \"results\": [\n  {\"index\": 0, \"ok\": true, \"link\": {\"code\": \"Ab3dE9x\", \"short_url\": \"...\", \"...\": \"...\"}, \"error\": null},\n  {\"index\": 1, \"ok\": true, \"link\": {\"code\": \"spring-b\", \"...\": \"...\"}, \"error\": null}]}\n```\n\n## Behaviour\n\n- Items are processed independently: an invalid URL or a taken alias fails only that item.\n- Every item consumes one rate-limit token; items over the limit fail with `rate limit exceeded`.\n- 422 for an empty batch, more than 100 items, or unknown fields.\n\n## Decision (ADR-002)\n\nPartial success with HTTP 200 and per-item results. All-or-nothing would force clients to\npre-validate whole campaign files; 207 Multi-Status was rejected as WebDAV-specific.\n"
+    }
+  ],
+  "summary": "Documented bulk API",
+  "decisions": [
+    {
+      "summary": "Document partial-success semantics prominently",
+      "rationale": "Most likely client mistake"
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "new_tests": [
+    "tests/integration/test_max_clicks.py"
+  ],
+  "counts": {
+    "passed": 76
+  },
+  "output_tail": "........................................................................ [ 94%]\n....                                                                     [100%]\n76 passed in 1.02s\n"
+}

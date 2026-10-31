@@ -1,0 +1,41 @@
+{
+  "design": {
+    "summary": "New module service/api/bulk.py with POST /api/v1/urls/bulk. Reuses LinkService.create per item (same validation, SSRF guard and alias rules) and the existing rate limiter per item. Response 200 with per-item results.",
+    "components": [
+      {
+        "name": "service.api.bulk.router",
+        "responsibility": "Bulk endpoint"
+      },
+      {
+        "name": "BulkCreateRequest / BulkItemResult / BulkCreateResponse",
+        "responsibility": "Typed contract, 1-100 items, extra fields forbidden"
+      },
+      {
+        "name": "LinkService (existing)",
+        "responsibility": "Per-item validation and creation"
+      }
+    ],
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/v1/urls/bulk",
+        "response": "200 {created, failed, results[{index, ok, link?, error?}]}"
+      }
+    ],
+    "api_changes": true,
+    "data_model_changes": false,
+    "adr": {
+      "title": "ADR-002: Partial success with 200 and per-item results",
+      "context": "Campaign imports contain some bad URLs; all-or-nothing would force clients to pre-validate and retry whole batches.",
+      "decision": "Process items independently and return 200 with per-item status; reject only structurally invalid batches with 422. 207 Multi-Status was rejected as WebDAV-specific.",
+      "consequences": "Clients must inspect results; counts make that easy. No transaction spans the batch."
+    },
+    "test_strategy": "Integration tests through TestClient for all-success, mixed failures (SSRF, duplicate alias), size limits, extra fields, and per-item rate limiting; contract test covers the OpenAPI change."
+  },
+  "decisions": [
+    {
+      "summary": "Separate module service/api/bulk.py",
+      "rationale": "Keeps routes.py focused on single-link ops"
+    }
+  ]
+}

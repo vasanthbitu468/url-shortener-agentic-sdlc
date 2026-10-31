@@ -1,0 +1,16 @@
+{
+  "edits": [
+    {
+      "path": "docs/changes/click-limits.md",
+      "action": "create",
+      "content": "# Click-limited links (and an idempotency fix)\n\n## Using it\n\n```bash\ncurl -X POST http://localhost:8000/api/v1/urls -H \"Content-Type: application/json\" \\\n  -d '{\"url\": \"https://example.com/offer\", \"max_clicks\": 1}'\n```\n\nAfter `max_clicks` redirects the link returns `410 Gone` with `link has reached its click limit`.\nOmit `max_clicks` for an unlimited link (the default; existing links are unlimited).\n\nThe limit is approximate under concurrent load: clicks are counted just after the redirect, so\nsimultaneous requests can exceed it by the number in flight.\n\n## Upgrade notes\n\nStartup adds the nullable `urls.max_clicks` column to existing databases automatically\n(`add_missing_columns`). The migration only adds nullable columns and refuses anything else.\n\n## Bug fix\n\nReplaying an `Idempotency-Key` after its link was deleted used to return `200` with a dead\nshort URL. It now returns `410 Gone` so the client knows to create a new link.\n\n## Decision (ADR-003)\n\nAdditive startup migration instead of adopting a migration framework now; destructive or\nNOT NULL changes still require a reviewed migration.\n"
+    }
+  ],
+  "summary": "Docs, upgrade notes, bug-fix note",
+  "decisions": [
+    {
+      "summary": "Include upgrade notes",
+      "rationale": "Operators need to know the schema changes at startup"
+    }
+  ]
+}

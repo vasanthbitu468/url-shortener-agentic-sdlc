@@ -1,0 +1,21 @@
+# BROWNFIELD: enhancement + bug fix in existing code, with a database schema change.
+# Control paths shown:
+#  - impact analysis maps the change onto existing modules, APIs and data flows
+#  - design changes the API contract AND the schema -> human approval checkpoint
+#  - the first test suite asserts the wrong status code -> suite fails -> rollback of the
+#    tests scope -> retry with the real pytest output as feedback -> passes
+#  - policy review flags the schema change as needing explicit approval at release
+name: brownfield-click-limits
+type: brownfield
+requirement: |
+  1) Sales wants one-time and limited-use links: a link should stop working after a set number
+     of clicks. Existing links and existing databases must keep working.
+  2) Bug report: if a client retries a create request with the same Idempotency-Key after the
+     link was deleted, it gets 200 and a short URL that is already dead.
+demo_steps:
+  - approve: design
+    by: "Vasanth (tech lead)"
+    comment: "Schema change is additive and nullable; migration approach accepted"
+  - approve: release
+    by: "Vasanth (tech lead)"
+    comment: "Schema change reviewed; upgrade notes present"

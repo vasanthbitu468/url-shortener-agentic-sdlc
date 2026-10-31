@@ -1,0 +1,479 @@
+{
+  "run_id": "greenfield-bulk-create",
+  "scenario": {
+    "name": "greenfield-bulk-create",
+    "type": "greenfield",
+    "requirement": "Marketing imports campaign links from spreadsheets and has to create them one at a time.\nBuild a way to shorten many URLs in a single request, up to 100 at once. Bad rows must not\nblock the good ones, and the bulk path must not become a way around our abuse protection.\n",
+    "faults": {},
+    "mock_dir": "scenarios/greenfield-bulk-create/mock",
+    "source": "scenarios/greenfield-bulk-create/scenario.yaml"
+  },
+  "status": "completed",
+  "stages": {
+    "requirements": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {},
+      "output_hashes": {
+        "spec": "cd1d05bddf32cc84"
+      },
+      "checkpoint": "cp001",
+      "feedback": [],
+      "summary": "Bulk link creation API: 6 acceptance criteria, 0 ambiguities",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "requirements-f645f58c",
+        "requirements-8af976bb"
+      ]
+    },
+    "planning": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "cd1d05bddf32cc84"
+      },
+      "output_hashes": {
+        "plan": "34d56d6a56efa9be"
+      },
+      "checkpoint": "cp002",
+      "feedback": [],
+      "summary": "5 tasks, 2 risks",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "planning-dda2a907"
+      ]
+    },
+    "impact_analysis": {
+      "status": "skipped",
+      "attempts": 0,
+      "executions": 0,
+      "reworks": 0,
+      "input_hashes": {},
+      "output_hashes": {},
+      "checkpoint": null,
+      "feedback": [],
+      "summary": "",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "skipped by planning",
+      "decision_ids": []
+    },
+    "design": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "cd1d05bddf32cc84",
+        "plan": "34d56d6a56efa9be"
+      },
+      "output_hashes": {
+        "design": "8d96bd1b10758431"
+      },
+      "checkpoint": "cp003",
+      "feedback": [],
+      "summary": "New module service/api/bulk.py with POST /api/v1/urls/bulk. Reuses LinkService.create per item (same validation, SSRF guard and alias rules) and the existing rate limiter per item. Response 200 with per-item results.",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "design-123f1c80"
+      ]
+    },
+    "implementation": {
+      "status": "completed",
+      "attempts": 2,
+      "executions": 2,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "cd1d05bddf32cc84",
+        "design": "8d96bd1b10758431"
+      },
+      "output_hashes": {
+        "implementation": "6e47ee8f74b05c79"
+      },
+      "checkpoint": "cp004",
+      "feedback": [],
+      "summary": "changed 3 files: service/api/bulk.py, service/main.py, service/openapi.json",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "implementation-3f7a28bf",
+        "implementation-17bb0756"
+      ]
+    },
+    "tests": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "cd1d05bddf32cc84",
+        "implementation": "6e47ee8f74b05c79"
+      },
+      "output_hashes": {
+        "test_report": "a07db02ebb51fcbb"
+      },
+      "checkpoint": "cp005",
+      "feedback": [],
+      "summary": "suite passed {'passed': 73}",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "tests-c922b261"
+      ]
+    },
+    "docs": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "spec": "cd1d05bddf32cc84",
+        "design": "8d96bd1b10758431"
+      },
+      "output_hashes": {
+        "docs": "bfd696ec80f9a060"
+      },
+      "checkpoint": "cp005",
+      "feedback": [],
+      "summary": "wrote docs/changes/bulk-create.md",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "docs-38714712"
+      ]
+    },
+    "review": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "design": "8d96bd1b10758431",
+        "implementation": "6e47ee8f74b05c79",
+        "test_report": "a07db02ebb51fcbb",
+        "docs": "bfd696ec80f9a060"
+      },
+      "output_hashes": {
+        "policy_report": "37a7c637d0e8aac8"
+      },
+      "checkpoint": "cp006",
+      "feedback": [],
+      "summary": "5 files, 278 changed lines, 0 findings (0 blocking)",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "review-5732397e"
+      ]
+    },
+    "release": {
+      "status": "completed",
+      "attempts": 1,
+      "executions": 1,
+      "reworks": 0,
+      "input_hashes": {
+        "policy_report": "37a7c637d0e8aac8",
+        "test_report": "a07db02ebb51fcbb"
+      },
+      "output_hashes": {
+        "release": "c68deab61f1dccd5"
+      },
+      "checkpoint": "cp007",
+      "feedback": [],
+      "summary": "patch ready: 5 files, 327 lines",
+      "last_error": "",
+      "used_fallback": false,
+      "skipped_reason": "",
+      "decision_ids": [
+        "release-e86d6331"
+      ]
+    }
+  },
+  "artifacts": {
+    "spec": {
+      "hash": "cd1d05bddf32cc84",
+      "version": 1,
+      "producer": "requirements",
+      "path": "artifacts/spec.v1.json"
+    },
+    "plan": {
+      "hash": "34d56d6a56efa9be",
+      "version": 1,
+      "producer": "planning",
+      "path": "artifacts/plan.v1.json"
+    },
+    "design": {
+      "hash": "8d96bd1b10758431",
+      "version": 1,
+      "producer": "design",
+      "path": "artifacts/design.v1.json"
+    },
+    "implementation": {
+      "hash": "6e47ee8f74b05c79",
+      "version": 1,
+      "producer": "implementation",
+      "path": "artifacts/implementation.v1.json"
+    },
+    "docs": {
+      "hash": "bfd696ec80f9a060",
+      "version": 1,
+      "producer": "docs",
+      "path": "artifacts/docs.v1.json"
+    },
+    "test_report": {
+      "hash": "a07db02ebb51fcbb",
+      "version": 1,
+      "producer": "tests",
+      "path": "artifacts/test_report.v1.json"
+    },
+    "policy_report": {
+      "hash": "37a7c637d0e8aac8",
+      "version": 1,
+      "producer": "review",
+      "path": "artifacts/policy_report.v1.json"
+    },
+    "release": {
+      "hash": "c68deab61f1dccd5",
+      "version": 1,
+      "producer": "release",
+      "path": "artifacts/release.v1.json"
+    }
+  },
+  "decisions": [
+    {
+      "id": "requirements-f645f58c",
+      "stage": "requirements",
+      "summary": "Partial success per item",
+      "rationale": "Campaign imports always contain a few bad URLs",
+      "inputs": {},
+      "parents": [],
+      "actor": "agent"
+    },
+    {
+      "id": "requirements-8af976bb",
+      "stage": "requirements",
+      "summary": "Rate limit per item, not per request",
+      "rationale": "Otherwise bulk bypasses abuse protection",
+      "inputs": {},
+      "parents": [],
+      "actor": "agent"
+    },
+    {
+      "id": "planning-dda2a907",
+      "stage": "planning",
+      "summary": "Skip impact analysis",
+      "rationale": "New self-contained module; only touches main.py to register a router and does not change existing behaviour",
+      "inputs": {
+        "spec": "cd1d05bddf32cc84"
+      },
+      "parents": [
+        "requirements-f645f58c",
+        "requirements-8af976bb"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "design-123f1c80",
+      "stage": "design",
+      "summary": "Separate module service/api/bulk.py",
+      "rationale": "Keeps routes.py focused on single-link ops",
+      "inputs": {
+        "spec": "cd1d05bddf32cc84"
+      },
+      "parents": [
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "approval-design-1",
+      "stage": "design",
+      "summary": "design approved",
+      "rationale": "Partial-success contract approved; 200 with per-item results is fine",
+      "inputs": {
+        "design": "8d96bd1b10758431"
+      },
+      "parents": [
+        "design-123f1c80"
+      ],
+      "actor": "human:Vasanth (tech lead)"
+    },
+    {
+      "id": "implementation-3f7a28bf",
+      "stage": "implementation",
+      "summary": "Reuse LinkService.create per item",
+      "rationale": "Keeps one implementation of validation, SSRF protection and alias rules",
+      "inputs": {
+        "spec": "cd1d05bddf32cc84",
+        "design": "8d96bd1b10758431"
+      },
+      "parents": [
+        "design-123f1c80",
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "implementation-17bb0756",
+      "stage": "implementation",
+      "summary": "Removed the test file from this change",
+      "rationale": "Previous attempt was refused: implementation may only write under service/",
+      "inputs": {
+        "spec": "cd1d05bddf32cc84",
+        "design": "8d96bd1b10758431"
+      },
+      "parents": [
+        "design-123f1c80",
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "docs-38714712",
+      "stage": "docs",
+      "summary": "Document partial-success semantics prominently",
+      "rationale": "Most likely client mistake",
+      "inputs": {
+        "spec": "cd1d05bddf32cc84",
+        "design": "8d96bd1b10758431"
+      },
+      "parents": [
+        "design-123f1c80",
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "implementation-3f7a28bf",
+        "implementation-17bb0756",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "tests-c922b261",
+      "stage": "tests",
+      "summary": "Assert per-item order and errors",
+      "rationale": "Order is part of the contract",
+      "inputs": {
+        "spec": "cd1d05bddf32cc84",
+        "implementation": "6e47ee8f74b05c79"
+      },
+      "parents": [
+        "design-123f1c80",
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "implementation-3f7a28bf",
+        "implementation-17bb0756",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "review-5732397e",
+      "stage": "review",
+      "summary": "Policy review: pass",
+      "rationale": "8 rules evaluated plus lint",
+      "inputs": {
+        "design": "8d96bd1b10758431",
+        "implementation": "6e47ee8f74b05c79",
+        "test_report": "a07db02ebb51fcbb",
+        "docs": "bfd696ec80f9a060"
+      },
+      "parents": [
+        "docs-38714712",
+        "design-123f1c80",
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "implementation-3f7a28bf",
+        "implementation-17bb0756",
+        "tests-c922b261",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "release-e86d6331",
+      "stage": "release",
+      "summary": "Release candidate prepared",
+      "rationale": "all upstream gates passed",
+      "inputs": {
+        "test_report": "a07db02ebb51fcbb",
+        "policy_report": "37a7c637d0e8aac8"
+      },
+      "parents": [
+        "docs-38714712",
+        "review-5732397e",
+        "design-123f1c80",
+        "requirements-f645f58c",
+        "requirements-8af976bb",
+        "implementation-3f7a28bf",
+        "implementation-17bb0756",
+        "tests-c922b261",
+        "planning-dda2a907"
+      ],
+      "actor": "agent"
+    },
+    {
+      "id": "approval-release-2",
+      "stage": "release",
+      "summary": "release approved",
+      "rationale": "Reviewed patch, tests and docs",
+      "inputs": {
+        "release": "c68deab61f1dccd5"
+      },
+      "parents": [
+        "release-e86d6331"
+      ],
+      "actor": "human:Vasanth (tech lead)"
+    }
+  ],
+  "approvals": [
+    {
+      "stage": "design",
+      "decision": "approved",
+      "actor": "Vasanth (tech lead)",
+      "comment": "Partial-success contract approved; 200 with per-item results is fine",
+      "ts": "2026-10-31T07:22:36.232434+00:00",
+      "output_hashes": {
+        "design": "8d96bd1b10758431"
+      }
+    },
+    {
+      "stage": "release",
+      "decision": "approved",
+      "actor": "Vasanth (tech lead)",
+      "comment": "Reviewed patch, tests and docs",
+      "ts": "2026-10-31T07:22:39.809802+00:00",
+      "output_hashes": {
+        "release": "c68deab61f1dccd5"
+      }
+    }
+  ],
+  "llm_calls": {
+    "requirements": 1,
+    "planning": 1,
+    "design": 1,
+    "implementation": 2,
+    "tests": 1,
+    "docs": 1
+  },
+  "total_reworks": 0,
+  "message": "release ready: review changes.patch and pr_description.md"
+}

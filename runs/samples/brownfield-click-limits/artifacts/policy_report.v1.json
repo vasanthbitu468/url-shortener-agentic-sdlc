@@ -1,0 +1,22 @@
+{
+  "findings": [
+    {
+      "rule": "change_control.schema",
+      "severity": "approval",
+      "message": "database schema change",
+      "path": "service/db/models.py"
+    }
+  ],
+  "lint_errors": "",
+  "changed_files": {
+    "docs/changes/click-limits.md": "added",
+    "service/api/routes.py": "modified",
+    "service/api/schemas.py": "modified",
+    "service/core/links.py": "modified",
+    "service/db/models.py": "modified",
+    "service/db/session.py": "modified",
+    "service/openapi.json": "modified",
+    "tests/integration/test_max_clicks.py": "added"
+  },
+  "diff_lines": 242
+}

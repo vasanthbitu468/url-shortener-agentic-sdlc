@@ -1,0 +1,53 @@
+{
+  "impact": {
+    "modules": [
+      {
+        "path": "service/config.py",
+        "change": "blocked_domains setting",
+        "new": false
+      },
+      {
+        "path": "service/core/validation.py",
+        "change": "domain matching helpers; check on create",
+        "new": false
+      },
+      {
+        "path": "service/core/links.py",
+        "change": "pass denylist to validation",
+        "new": false
+      },
+      {
+        "path": "service/api/routes.py",
+        "change": "wire setting into LinkService; check on every redirect",
+        "new": false
+      }
+    ],
+    "apis": [
+      {
+        "endpoint": "POST /api/v1/urls",
+        "change": "changed"
+      },
+      {
+        "endpoint": "GET /{code}",
+        "change": "changed"
+      }
+    ],
+    "data_flows": [
+      "config -> Settings.blocked_domain_set -> LinkService -> validation",
+      "redirect: cache or DB -> denylist check -> 302 or 410"
+    ],
+    "tests_affected": [
+      "tests/integration/test_api.py"
+    ],
+    "risk_level": "medium",
+    "risks": [
+      "Behaviour change for existing links"
+    ]
+  },
+  "decisions": [
+    {
+      "summary": "Redirect path now affected",
+      "rationale": "Cache hits must be re-checked too"
+    }
+  ]
+}

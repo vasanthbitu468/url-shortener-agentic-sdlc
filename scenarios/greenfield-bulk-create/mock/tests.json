@@ -1,0 +1,16 @@
+{
+  "edits": [
+    {
+      "path": "tests/integration/test_bulk.py",
+      "action": "create",
+      "content": "from fastapi.testclient import TestClient\n\nfrom service.config import Settings\nfrom service.main import create_app\n\nURL = \"https://example.com/page\"\n\n\ndef bulk(client, items):\n    return client.post(\"/api/v1/urls/bulk\", json={\"items\": items})\n\n\ndef test_bulk_creates_every_valid_item(client):\n    r = bulk(client, [{\"url\": f\"{URL}/{i}\"} for i in range(3)])\n    assert r.status_code == 200\n    data = r.json()\n    assert data[\"created\"] == 3 and data[\"failed\"] == 0\n    codes = [item[\"link\"][\"code\"] for item in data[\"results\"]]\n    assert len(set(codes)) == 3\n    assert client.get(f\"/{codes[0]}\").headers[\"location\"] == f\"{URL}/0\"\n\n\ndef test_bulk_reports_per_item_failures_without_failing_the_batch(client):\n    r = bulk(\n        client,\n        [\n            {\"url\": URL, \"custom_alias\": \"dup-alias\"},\n            {\"url\": \"http://127.0.0.1/admin\"},\n            {\"url\": URL, \"custom_alias\": \"dup-alias\"},\n            {\"url\": URL},\n        ],\n    )\n    data = r.json()\n    assert r.status_code == 200\n    assert [x[\"ok\"] for x in data[\"results\"]] == [True, False, False, True]\n    assert \"private\" in data[\"results\"][1][\"error\"]\n    assert \"already in use\" in data[\"results\"][2][\"error\"]\n    assert data[\"created\"] == 2 and data[\"failed\"] == 2\n\n\ndef test_bulk_rejects_empty_and_oversized_batches(client):\n    assert bulk(client, []).status_code == 422\n    assert bulk(client, [{\"url\": URL}] * 101).status_code == 422\n    assert client.post(\"/api/v1/urls/bulk\", json={\"items\": [], \"x\": 1}).status_code == 422\n\n\ndef test_bulk_items_count_against_rate_limit():\n    app = create_app(Settings(database_url=\"sqlite://\", rate_limit_requests=2))\n    c = TestClient(app)\n    data = bulk(c, [{\"url\": f\"{URL}/{i}\"} for i in range(3)]).json()\n    assert [x[\"ok\"] for x in data[\"results\"]] == [True, True, False]\n    assert data[\"results\"][2][\"error\"] == \"rate limit exceeded\"\n    app.state.engine.dispose()\n"
+    }
+  ],
+  "summary": "Bulk endpoint tests",
+  "decisions": [
+    {
+      "summary": "Assert per-item order and errors",
+      "rationale": "Order is part of the contract"
+    }
+  ]
+}

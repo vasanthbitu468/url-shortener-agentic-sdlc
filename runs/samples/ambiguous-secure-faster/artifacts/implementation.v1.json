@@ -1,0 +1,12 @@
+{
+  "changed_files": [
+    "service/api/routes.py",
+    "service/config.py",
+    "service/core/links.py",
+    "service/core/validation.py",
+    "service/openapi.json"
+  ],
+  "compile_errors": [],
+  "openapi_error": "",
+  "summary": "Create-time denylist"
+}

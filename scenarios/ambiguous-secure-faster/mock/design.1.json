@@ -1,0 +1,37 @@
+{
+  "design": {
+    "summary": "Settings.blocked_domains (comma-separated) parsed into a frozenset; validate_target_url rejects blocked hosts and subdomains at creation.",
+    "components": [
+      {
+        "name": "Settings.blocked_domain_set",
+        "responsibility": "Normalised denylist"
+      },
+      {
+        "name": "validation.is_blocked_host",
+        "responsibility": "Exact or subdomain match"
+      }
+    ],
+    "endpoints": [
+      {
+        "method": "POST",
+        "path": "/api/v1/urls",
+        "response": "422 'destination domain is blocked'"
+      }
+    ],
+    "api_changes": false,
+    "data_model_changes": false,
+    "adr": {
+      "title": "ADR-004: Config-based denylist, enforced at create",
+      "context": "Customers reported phishing links behind our domain. The request ('more secure and faster') was ambiguous; scope was agreed via signed-off defaults.",
+      "decision": "Operator-managed domain denylist with subdomain matching; existing links unaffected",
+      "consequences": "No schema change; status codes already in the contract. Links created before a domain is blocked keep working."
+    },
+    "test_strategy": "Unit tests for parsing and matching; integration tests for create"
+  },
+  "decisions": [
+    {
+      "summary": "Reuse validate_target_url",
+      "rationale": "One place for destination rules"
+    }
+  ]
+}

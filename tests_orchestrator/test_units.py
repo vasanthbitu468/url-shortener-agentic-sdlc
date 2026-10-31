@@ -306,3 +306,32 @@ def test_scenario_loading(tmp_path, demo_scenario):
 def test_content_hash_is_stable():
     assert content_hash({"a": 1, "b": 2}) == content_hash({"b": 2, "a": 1})
     assert json.dumps(content_hash([1]))
+
+
+def test_line_ending_only_difference_is_not_a_change(ws):
+    """Windows regression: a CRLF rewrite of an unchanged file must not count as a change
+    (it made policy review think the API contract changed)."""
+    # exact bytes, independent of how the OS wrote the fixture file
+    (ws.baseline / "service" / "a.py").write_bytes(b"x = 1\n")
+    (ws.root / "service" / "a.py").write_bytes(b"x = 1\r\n")
+    assert ws.changed_files() == {}
+    assert ws.diff() == ""
+    (ws.root / "service" / "a.py").write_bytes(b"x = 2\r\n")
+    assert ws.changed_files() == {"service/a.py": "modified"}
+
+
+def test_openapi_export_writes_lf_on_every_os(tmp_path):
+    import shutil
+    import sys
+
+    from tests_orchestrator.conftest import REPO
+
+    for name in ("service", "scripts"):
+        shutil.copytree(REPO / name, tmp_path / name)
+    out = tmp_path / "service" / "openapi.json"
+    out.unlink()
+    subprocess.run(
+        [sys.executable, "scripts/export_openapi.py"], cwd=tmp_path, check=True, capture_output=True
+    )
+    data = out.read_bytes()
+    assert b"\r\n" not in data and data == (REPO / "service" / "openapi.json").read_bytes()

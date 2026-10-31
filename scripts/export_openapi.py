@@ -23,5 +23,7 @@ def render() -> str:
 
 
 if __name__ == "__main__":
-    OUT.write_text(render(), encoding="utf-8")
+    # newline="\n": identical bytes on Windows and Linux, so the contract never shows a
+    # spurious line-ending-only change
+    OUT.write_text(render(), encoding="utf-8", newline="\n")
     print(f"wrote {OUT.relative_to(ROOT)}")

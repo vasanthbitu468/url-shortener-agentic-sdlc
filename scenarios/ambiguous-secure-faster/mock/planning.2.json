@@ -1,0 +1,89 @@
+{
+  "plan": {
+    "tasks": [
+      {
+        "id": "A1",
+        "title": "Impact analysis on validation and config",
+        "stage": "impact_analysis",
+        "depends_on": [],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "A2",
+        "title": "Design denylist config and matching rules",
+        "stage": "design",
+        "depends_on": [
+          "A1"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "A3",
+        "title": "Enforce denylist on create",
+        "stage": "implementation",
+        "depends_on": [
+          "A2"
+        ],
+        "estimate_hours": 1
+      },
+      {
+        "id": "A3b",
+        "title": "Enforce denylist on every redirect (incl. cache)",
+        "stage": "implementation",
+        "depends_on": [
+          "A3"
+        ],
+        "estimate_hours": 1
+      },
+      {
+        "id": "A4",
+        "title": "Tests: matching rules, create and redirect",
+        "stage": "tests",
+        "depends_on": [
+          "A3b"
+        ],
+        "estimate_hours": 1
+      },
+      {
+        "id": "A5",
+        "title": "Operator docs",
+        "stage": "docs",
+        "depends_on": [
+          "A3b"
+        ],
+        "estimate_hours": 0.5
+      },
+      {
+        "id": "A6",
+        "title": "Policy review and release",
+        "stage": "review",
+        "depends_on": [
+          "A4",
+          "A5"
+        ],
+        "estimate_hours": 0.5
+      }
+    ],
+    "risks": [
+      {
+        "risk": "Suffix matching could block lookalikes or miss subdomains",
+        "mitigation": "Match exact domain or '.'+domain only; tests for both directions"
+      },
+      {
+        "risk": "Interpretation of a vague request may be wrong",
+        "mitigation": "Ambiguities listed with defaults and signed off before work starts"
+      },
+      {
+        "risk": "Blocking existing links breaks legitimate links on a bad entry",
+        "mitigation": "Removing the domain from config restores them; nothing is deleted"
+      }
+    ],
+    "skip_stages": []
+  },
+  "decisions": [
+    {
+      "summary": "Add redirect-time enforcement task",
+      "rationale": "Spec v2 from product owner requires existing links to be disabled"
+    }
+  ]
+}
