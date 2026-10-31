@@ -5,8 +5,22 @@ evolves the service through a governed SDLC pipeline: dependency graph, entry/ex
 parallel stages, human approvals, bounded retries, fallback, rollback, safe-stop, re-planning,
 policy guardrails and a hash-chained audit log.
 
-**Status:** service, orchestrator and the three assessment scenarios complete. Next: the
-architecture overview and engineering-summary docs, then the v1.0.0 release.
+**Status:** v1.0.0. 106 tests, 99% coverage, CI on every pull request, verified on Linux and
+Windows.
+
+## Documentation
+
+| Document | Contents |
+| --- | --- |
+| [Engineering summary](docs/ENGINEERING_SUMMARY.md) | Start here: plan, requirement-by-requirement coverage, artifacts, risks, assumptions, limitations |
+| [Architecture](docs/ARCHITECTURE.md) | Components, orchestration model, control flow, key decisions (with diagrams) |
+| [Scenarios](docs/SCENARIOS.md) | Greenfield, brownfield, ambiguous: decomposition, orchestration trace, validation |
+| [Testing](docs/TESTING.md) | Test layers, techniques, CI, what is not covered |
+| [Risks and limitations](docs/RISKS_AND_LIMITATIONS.md) | Risk register, trade-offs, assumptions, limitations |
+| [Setup](docs/SETUP.md) | Install, run the service and the orchestrator, troubleshooting |
+| [Decision records](docs/DECISIONS/) | Six ADRs |
+| [Recorded runs](runs/samples/) | Summaries, PR text, patches, audit logs and artifacts of every scenario |
+| [Changelog](CHANGELOG.md) | Release history |
 
 ## Scenarios
 
@@ -154,7 +168,7 @@ re-plan, autonomy violations, audit tampering). Takes about a minute.
 CI enforces lint (`ruff`), an 85% coverage gate, a Docker build + smoke test, and runs all
 scenarios end to end; each scenario's patch must apply to a clean checkout and pass the suite.
 
-## Known limitations (Phase 1)
+## Known limitations
 
 - Rate limiter and cache are in-process; multiple instances need Redis behind the same interfaces.
 - SSRF check does not resolve DNS; a public hostname resolving to a private IP is not caught.
@@ -168,7 +182,6 @@ same run at once; mock mode replays scripted responses and does not judge prompt
 
 ## Roadmap
 
-1. ~~Core service~~
-2. ~~Agentic orchestration engine with governance, audit and metrics~~
-3. ~~Scenarios: greenfield, brownfield, ambiguous~~
-4. Docs (architecture, scenarios, testing, engineering summary) and release
+Delivered in four reviewed pull requests: service (#1), orchestrator (#2), scenarios (#3),
+documentation and release (#4). Next steps are listed in
+[the engineering summary](docs/ENGINEERING_SUMMARY.md#6-limitations-and-next-steps).
